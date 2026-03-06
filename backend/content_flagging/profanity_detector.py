@@ -16,9 +16,9 @@ def get_url_text(url):
         print(f"An error occurred: {e}")
         return None
 
-text = get_url_text("https://www.ashleyhajimirsadeghi.com/blog/wicked-part-one-2024")
+text = get_url_text("https://www.refinery29.com/en-gb/best-am-i-the-asshole-reddit-stories")
 
-print(profanity.censor(text)) 
+# print(profanity.censor(text)) 
 print(profanity.contains_profanity(text))   
 
 # print the words in block of text that cause contains_profanity to return true

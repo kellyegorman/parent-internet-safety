@@ -134,4 +134,4 @@ def predict_offensive_from_url(url):
 
 
 if __name__ == "__main__":
-    print(predict_offensive_from_url("https://www.ashleyhajimirsadeghi.com/blog/wicked-part-one-2024"))
+    print(predict_offensive_from_url("https://wwf.org.au/blogs/9-interesting-platypus-facts/"))
