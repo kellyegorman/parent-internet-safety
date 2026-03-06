@@ -28,6 +28,9 @@ function addDevice(event) {
     event.preventDefault();
     const deviceName = document.getElementById("deviceName").value;
     const message = document.getElementById("deviceMessage");
+    document.getElementById("deviceContainer").hidden = true;
+    document.getElementById("deviceTitle").textContent = deviceName;
+    document.getElementById("successContainer").hidden = false;
     // // open history tab when extension icon clicked
     // chrome.tabs.create({
     //     url: chrome.runtime.getURL("history/history.html")
