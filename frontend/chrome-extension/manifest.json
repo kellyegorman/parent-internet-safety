@@ -1,0 +1,10 @@
+{
+  "name": "Guardian",
+  "description": "Child Browser Safety",
+  "version": "1.0",
+  "manifest_version": 3,
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": "images/shield_heart_transparent.png"
+  }
+}

@@ -1,0 +1,1 @@
+files for browser extension of app. see READ ME for extension setup and details.

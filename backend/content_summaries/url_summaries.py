@@ -105,5 +105,5 @@ def top_3_topics_from_url(url):
         return None
     
 if __name__ == "__main__":
-    url = "https://thedirect.com/article/wicked-movie-spoilers-plot-2024-summary"  
+    url = "https://litfl.com/ct-case-103/"  
     print(top_3_topics_from_url(url))
