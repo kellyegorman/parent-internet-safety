@@ -123,7 +123,7 @@ def login(body: LoginRequest):
                 {"email": body.email},
             ).fetchone()
 
-        # Generic 401 whether email exists or not
+        # Generic 401 whether login credentials are valid
         if not row:
             raise HTTPException(status_code=401, detail="Invalid credentials")
 
