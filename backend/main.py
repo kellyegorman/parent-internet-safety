@@ -3,12 +3,15 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Header
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import IntegrityError
 from pydantic import BaseModel, Field
 import uuid
 from jose import jwt, JWTError
 from passlib.context import CryptContext
 from dotenv import load_dotenv
 from datetime import datetime, timezone, timedelta
+from pydantic import BaseModel, Field
+from typing import Optional
 
 load_dotenv()
 API_KEY = os.getenv("API_KEY")
@@ -45,6 +48,12 @@ class UserCreate(BaseModel):
     email: str
     password: str = Field(..., min_length=8, max_length=72)
 
+class DeviceCreate(BaseModel):
+    deviceid: str = Field(..., max_length=15)
+    userid: str = Field(..., max_length=15)
+    device_name: str = Field(..., max_length=100)
+    device_token: Optional[str] = Field(None, max_length=255)
+
 class LoginRequest(BaseModel):
     email: str
     password: str
@@ -52,6 +61,11 @@ class LoginRequest(BaseModel):
 class LoginResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
+
+class SearchCreate(BaseModel):
+    deviceid: str
+    query_text: str
+    url: str | None = None
 
 def create_access_token(*, sub: str) -> str:
     now = datetime.now(timezone.utc)
@@ -140,3 +154,86 @@ def login(body: LoginRequest):
     except SQLAlchemyError:
         # Don't leak DB details to client
         raise HTTPException(status_code=500, detail="Database error")
+    
+@app.post("/devices")
+def add_device(payload: DeviceCreate):
+    try:
+        with engine.begin() as conn:
+            # Optional: check whether userid exists first
+            user = conn.execute(
+                text("SELECT userid FROM users WHERE userid = :userid"),
+                {"userid": payload.userid}
+            ).fetchone()
+
+            if not user:
+                raise HTTPException(status_code=400, detail="Invalid userid")
+
+            # Check if device already exists
+            existing_device = conn.execute(
+                text("SELECT deviceid FROM devices WHERE deviceid = :deviceid"),
+                {"deviceid": payload.deviceid}
+            ).fetchone()
+
+            if existing_device:
+                return {
+                    "message": "Device already registered",
+                    "deviceid": payload.deviceid
+                }
+
+            conn.execute(
+                text("""
+                    INSERT INTO devices (deviceid, userid, device_name, device_token)
+                    VALUES (:deviceid, :userid, :device_name, :device_token)
+                """),
+                {
+                    "deviceid": payload.deviceid,
+                    "userid": payload.userid,
+                    "device_name": payload.device_name,
+                    "device_token": payload.device_token
+                }
+            )
+
+        return {
+            "message": "Device registered successfully",
+            "deviceid": payload.deviceid
+        }
+
+    except IntegrityError as e:
+        raise HTTPException(status_code=400, detail=f"Database integrity error: {str(e)}")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
+
+
+@app.post("/searches")
+def create_search(
+    search: SearchCreate,
+    x_api_key: str | None = Header(default=None)
+):
+    require_api_key(x_api_key)
+
+    searchid = "S" + uuid.uuid4().hex[:14]
+
+    try:
+        with engine.begin() as conn:
+            conn.execute(
+                text("""
+                    INSERT INTO searches (searchid, deviceid, query_text, url)
+                    VALUES (:searchid, :deviceid, :query_text, :url)
+                """),
+                {
+                    "searchid": searchid,
+                    "deviceid": search.deviceid,
+                    "query_text": search.query_text,
+                    "url": search.url
+                }
+            )
+
+        return {
+            "message": "Search stored successfully",
+            "searchid": searchid
+        }
+
+    except SQLAlchemyError as e:
+        raise HTTPException(status_code=500, detail=str(e))
