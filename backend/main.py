@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 from datetime import datetime, timezone, timedelta
 from pydantic import BaseModel, Field
 from typing import Optional
+from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
 API_KEY = os.getenv("API_KEY")
@@ -42,6 +43,13 @@ if not DATABASE_URL:
 engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 
 app = FastAPI(title="Capstone API")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # or specific frontend URLs
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class UserCreate(BaseModel):
     username: str
