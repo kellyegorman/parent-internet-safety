@@ -136,6 +136,31 @@ def get_users():
         rows = conn.execute(text("SELECT userid, username, email FROM users")).fetchall()
     return {"users": [dict(r._mapping) for r in rows]}
 
+@app.get("/userid")
+def get_userid(email: str, x_api_key: str | None = Header(default=None)):
+    require_api_key(x_api_key)
+    try:
+        with engine.connect() as conn:
+            row = conn.execute(
+                text("""
+                    SELECT userid
+                    FROM users
+                    WHERE email = :email
+                    LIMIT 1
+                """),
+                {"email": email}
+            ).fetchone()
+
+        if not row:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        return {"userid": row[0]}
+
+    except HTTPException:
+        raise
+    except SQLAlchemyError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/login", response_model=LoginResponse)
 def login(body: LoginRequest):
     try:
