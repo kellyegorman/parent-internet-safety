@@ -1,0 +1,121 @@
+/* ============================================================
+   topics-activity.css — Topics cloud & timeline styles
+   ============================================================ */
+ 
+/* ── Topics ──────────────────────────────────────────────────── */
+.topics-cloud {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 4px 0;
+  }
+   
+  .topic-pill {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 14px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--r-xl);
+    cursor: pointer;
+    transition: all var(--t-fast);
+  }
+  .topic-pill:hover {
+    border-color: var(--border-hi);
+    background: var(--surface-3);
+  }
+   
+  .topic-pill-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    letter-spacing: 0.1px;
+  }
+  .topic-pill-count {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 400;
+  }
+   
+  .topic-swatch {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .swatch-sports  { background: var(--teal-500); }
+  .swatch-gaming  { background: var(--sage-500); }
+  .swatch-celeb   { background: var(--amber-500); }
+  .swatch-science { background: #b08cf5; }
+  .swatch-other   { background: var(--ink-300); }
+   
+  /* ── Activity Timeline ───────────────────────────────────────── */
+  .timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 4px 0;
+  }
+   
+  .tl-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 13px;
+    padding: 9px 0;
+    position: relative;
+  }
+   
+  /* Connector line between items */
+  .tl-row:not(:last-child) .tl-spine::after {
+    content: '';
+    position: absolute;
+    left: 13px;
+    top: 32px;
+    bottom: -9px;
+    width: 1px;
+    background: var(--border);
+  }
+  .tl-spine {
+    position: relative;
+    flex-shrink: 0;
+  }
+   
+  .tl-dot {
+    width: 26px; height: 26px;
+    border-radius: var(--r-xs);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .tl-dot--rose   { background: var(--rose-muted); }
+  .tl-dot--teal   { background: var(--teal-muted); }
+  .tl-dot--amber  { background: var(--amber-muted); }
+  .tl-dot--sage   { background: var(--sage-muted); }
+  .tl-dot--subtle { background: var(--surface-3); }
+   
+  .tl-icon {
+    width: 14px; height: 14px;
+    stroke-width: 2;
+  }
+  .icon-rose  { stroke: var(--rose-500); }
+  .icon-teal  { stroke: var(--teal-500); }
+  .icon-amber { stroke: var(--amber-500); }
+  .icon-sage  { stroke: var(--sage-500); }
+  .icon-dim   { stroke: var(--ink-300); }
+   
+  .tl-content { flex: 1; padding-top: 3px; }
+   
+  .tl-action {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    line-height: 1.4;
+  }
+   
+  .tl-when {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 1px;
+  }
+   
