@@ -21,7 +21,7 @@ export function renderAlertBanner(alerts) {
     <div class="alert-content">
       <div class="alert-meta">Content Alert — ${alert.timestamp}</div>
       <div class="alert-headline">
-        Jake searched for
+        (CHILD NAME) searched for
         <span class="alert-query-tag">${alert.query}</span>
         on Chrome. This query was flagged by content filters.
       </div>
@@ -35,7 +35,7 @@ export function renderAlertBanner(alerts) {
  
   document.getElementById('btn-block')?.addEventListener('click', () => {
     dismissBanner();
-    showToast('Site Blocked', 'The content source has been blocked for Jake.');
+    showToast('Site Blocked', 'The content source has been blocked for (CHILD NAME).');
   });
  
   document.getElementById('btn-ok')?.addEventListener('click', () => {

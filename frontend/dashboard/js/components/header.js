@@ -11,7 +11,7 @@ export function renderHeader(alertCount) {
   el.innerHTML = `
     <div class="header-brand">
       <div class="brand-logotype">Parent+Child<em>   Internet Safety</em></div>
-      <div class="brand-sub">Parental Oversight</div>
+      <div class="brand-sub">((PARENT NAME))'s Account</div>
     </div>
     <div class="header-controls">
       <div class="child-pill" role="button" aria-label="Switch child profile">

@@ -8,9 +8,9 @@
 export const db = {
  
     child: {
-      name: "Jake",
+      name: "CHILD NAME EXAmple",
       age: 12,
-      device: "Jake's MacBook"
+      device: "CHILD NAME's Computer"
     },
    
     stats: {
