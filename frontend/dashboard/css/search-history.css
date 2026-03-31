@@ -1,0 +1,67 @@
+/* ============================================================
+   search-history.css — Search list component styles
+   ============================================================ */
+ 
+   .search-list {
+    display: flex;
+    flex-direction: column;
+    padding: 6px 0;
+  }
+   
+  .search-item {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    padding: 10px 14px;
+    border-radius: var(--r-sm);
+    cursor: pointer;
+    transition: background var(--t-fast);
+    position: relative;
+  }
+  .search-item:hover {
+    background: var(--surface-2);
+  }
+   
+  .search-type-mark {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+  .mark-sports  { background: var(--teal-500); }
+  .mark-gaming  { background: var(--sage-500); }
+  .mark-celeb   { background: var(--amber-500); }
+  .mark-flagged { background: var(--rose-500); }
+  .mark-default { background: var(--ink-400); }
+   
+  .search-text { flex: 1; min-width: 0; }
+   
+  .search-query-text {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+   
+  .search-timestamp {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 1px;
+    font-weight: 400;
+  }
+   
+  .search-item-badge { flex-shrink: 0; }
+   
+  /* Flagged item gets a subtle left border treatment */
+  .search-item--flagged {
+    background: rgba(232,91,91,0.035);
+  }
+  .search-item--flagged:hover {
+    background: rgba(232,91,91,0.065);
+  }
+  .search-item--flagged .search-query-text {
+    color: var(--rose-500);
+  }
+   
