@@ -1,9 +1,11 @@
 body {
     font-family: Arial, sans-serif;
-    background-color: #dcdcdc;
+    background: linear-gradient(to right, #4e73df, #1cc88a);
     display: flex;
     justify-content: center;
-    padding-top: 40px;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
 }
 
 .dashboard-container {
