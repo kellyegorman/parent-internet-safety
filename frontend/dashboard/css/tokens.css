@@ -1,0 +1,82 @@
+/* ============================================================
+   tokens.css — Design tokens & CSS custom properties
+   GuardianView Parent Dashboard
+   ============================================================ */
+ 
+   @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Syne:wght@400;500;600;700;800&display=swap');
+ 
+   :root {
+     /* ── Palette ─────────────────────────────────────────────── */
+     --ink-950:   #1e2233;   /* page bg */
+     --ink-900:   #3e4d4f;   /* card surface */
+     --ink-800:   #2c3349;   /* secondary surface */
+     --ink-700:   #343c54;   /* hover / tertiary surface */
+     --ink-600:   #3f4a64;   /* active borders */
+     --ink-400:   #6b7899;   /* muted text */
+     --ink-300:   #8a96b4;   /* tertiary text */
+     --ink-200:   #b0bad4;   /* secondary text */
+     --ink-100:   #d0d8ec;   /* primary text */
+     --ink-50:    #edf0f8;   /* highest contrast text */
+              
+     --teal-500:  #2dd4b4;
+     --teal-400:  #4de8ca;
+     --teal-muted: rgba(45, 212, 180, 0.10);
+     --teal-glow:  rgba(45, 212, 180, 0.20);
+    
+     --amber-500: #e8a535;
+     --amber-muted: rgba(232, 165, 53, 0.10);
+    
+     --rose-500:  #e85b5b;
+     --rose-muted: rgba(232, 91, 91, 0.10);
+    
+     --sage-500:  #7ab87a;
+     --sage-muted: rgba(122, 184, 122, 0.10);
+    
+     /* ── Semantic surface tokens ─────────────────────────────── */
+     --bg:        #323a3b;   /* deep blue-slate page bg */
+     --surface-1:   var(--ink-900);
+     --surface-2:   var(--ink-800);
+     --surface-3:   var(--ink-700);
+     --border:    rgba(255, 255, 255, 0.07); /*background theme*/
+     --border-hi: rgba(255, 255, 255, 0.13); /*background theme*/
+              
+     /* ── Typography ──────────────────────────────────────────── */
+     --font-display: 'Instrument Serif', Georgia, serif;
+     --font-ui:      'Syne', 'Helvetica Neue', sans-serif;
+    
+     --text-primary:   var(--ink-50);
+     --text-secondary: var(--ink-200);
+     --text-tertiary:  var(--ink-300);
+     --text-muted:     var(--ink-400);
+    
+     /* ── Radius ──────────────────────────────────────────────── */
+     --r-xs:  6px;
+     --r-sm:  10px;
+     --r-md:  16px;
+     --r-lg:  22px;
+     --r-xl:  30px;
+    
+     /* ── Spacing ─────────────────────────────────────────────── */
+     --space-1:  4px;
+     --space-2:  8px;
+     --space-3:  12px;
+     --space-4:  16px;
+     --space-5:  20px;
+     --space-6:  24px;
+     --space-8:  32px;
+     --space-10: 40px;
+     --space-12: 48px;
+    
+     /* ── Shadows ─────────────────────────────────────────────── */
+     --shadow-card: 0 1px 3px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.25);
+     --shadow-teal: 0 0 24px rgba(45, 212, 180, 0.18);
+    
+     /* ── Transitions ─────────────────────────────────────────── */
+     --ease-out:   cubic-bezier(0.16, 1, 0.3, 1);
+     --ease-spring:cubic-bezier(0.34, 1.56, 0.64, 1);
+     --t-fast: 140ms;
+     --t-mid:  220ms;
+     --t-slow: 400ms;
+   }
+    
+   

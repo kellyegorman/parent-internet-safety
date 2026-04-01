@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Parent Dashboard</title>
+ 
+  <!-- Stylesheets (load order matters) -->
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/components.css" />
+  <link rel="stylesheet" href="css/layout.css" />
+  <link rel="stylesheet" href="css/search-history.css" />
+  <link rel="stylesheet" href="css/topics-activity.css" />
+</head>
+<body>
+ 
+  <!-- Ambient background glows -->
+  <div class="ambient ambient-a" aria-hidden="true"></div>
+  <div class="ambient ambient-b" aria-hidden="true"></div>
+ 
+  <div class="page-wrapper">
+ 
+    <!-- ── Header ─────────────────────────────────────────── -->
+    <header class="site-header reveal reveal-1" id="header" role="banner">
+      <!-- Populated by header.js -->
+    </header>
+ 
+    <!-- ── Alert Banner ───────────────────────────────────── -->
+    <div id="alert-banner" role="alert" aria-live="polite">
+      <!-- Populated by alert-banner.js -->
+    </div>
+ 
+    <!-- ── Stats Row ──────────────────────────────────────── -->
+    <div class="stats-grid" id="stats-grid">
+      <!-- Populated by stats.js -->
+    </div>
+ 
+    <!-- ── Main Two-Column Grid ───────────────────────────── -->
+    <div class="main-grid">
+ 
+      <!-- Search History -->
+      <div class="card reveal reveal-3">
+        <div class="card-header">
+          <div>
+            <div class="card-eyebrow">Activity Log</div>
+            <div class="card-title">Recent Searches</div>
+          </div>
+          <button class="btn btn-ghost">View all</button>
+        </div>
+        <div id="search-list">
+          <!-- Populated by search-history.js -->
+        </div>
+      </div>
+ 
+      <!-- Topics + Activity stacked in right column -->
+      <div style="display:flex; flex-direction:column; gap:18px;">
+ 
+        <!-- Topics -->
+        <div class="card reveal reveal-4">
+          <div class="card-header">
+            <div>
+              <div class="card-eyebrow">Interests</div>
+              <div class="card-title">Common Topics</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="topics-cloud" id="topics-cloud">
+              <!-- Populated by topics-activity.js -->
+            </div>
+          </div>
+        </div>
+ 
+        <!-- Activity Timeline -->
+        <div class="card reveal reveal-5">
+          <div class="card-header">
+            <div>
+              <div class="card-eyebrow">Log</div>
+              <div class="card-title">Recent Activity</div>
+            </div>
+          </div>
+          <div class="card-body" style="padding-top:14px; padding-bottom:14px;">
+            <div class="timeline" id="timeline">
+              <!-- Populated by topics-activity.js -->
+            </div>
+          </div>
+        </div>
+ 
+      </div>
+    </div>
+ 
+    <!-- ── Connection Bar ─────────────────────────────────── -->
+    <div class="connection-bar reveal reveal-6">
+      <span class="status-dot live"></span>
+      <span class="connection-bar-text">
+        <strong>Chrome Extension</strong> — connected &amp; monitoring
+      </span>
+      <span class="connection-device" id="connection-device">—</span>
+    </div>
+ 
+  </div>
+ 
+  <!-- ── Toast ────────────────────────────────────────────── -->
+  <div id="toast" role="status" aria-live="polite">
+    <div class="toast-title"></div>
+    <div class="toast-body"></div>
+  </div>
+ 
+  <!-- JS entry point (ES modules) -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

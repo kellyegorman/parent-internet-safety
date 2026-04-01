@@ -1,0 +1,97 @@
+/* ============================================================
+   base.css — Reset, global element styles, layout shell
+   ============================================================ */
+ 
+   *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+   
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
+  }
+   
+  body {
+    font-family: var(--font-ui);
+    font-size: 14px;
+    line-height: 1.5;
+    background-color: var(--bg);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+   
+  /* ── Noise texture overlay ──────────────────────────────────── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.4;
+  }
+   
+  /* ── Ambient light blobs ─────────────────────────────────────── */
+  .ambient {
+    position: fixed;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 0;
+    filter: blur(80px);
+  }
+  .ambient-a {
+    width: 500px; height: 500px;
+    top: -180px; left: -120px;
+    background: radial-gradient(circle, rgba(45,212,180,0.05) 0%, transparent 65%);
+  }
+  .ambient-b {
+    width: 400px; height: 400px;
+    bottom: -100px; right: -80px;
+    background: radial-gradient(circle, rgba(232,165,53,0.04) 0%, transparent 65%);
+  }
+   
+  /* ── Page wrapper ────────────────────────────────────────────── */
+  .page-wrapper {
+    position: relative;
+    z-index: 1;
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 36px 28px 80px;
+  }
+   
+  /* ── Utility classes ─────────────────────────────────────────── */
+  .sr-only {
+    position: absolute; width: 1px; height: 1px;
+    overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap;
+  }
+   
+  a { color: inherit; text-decoration: none; }
+   
+  button {
+    font-family: var(--font-ui);
+    cursor: pointer;
+    border: none;
+    background: none;
+  }
+   
+  /* ── Staggered entrance animations ──────────────────────────── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+   
+  .reveal {
+    animation: fadeUp var(--t-slow) var(--ease-out) both;
+  }
+  .reveal-1 { animation-delay: 0.04s; }
+  .reveal-2 { animation-delay: 0.10s; }
+  .reveal-3 { animation-delay: 0.16s; }
+  .reveal-4 { animation-delay: 0.22s; }
+  .reveal-5 { animation-delay: 0.28s; }
+  .reveal-6 { animation-delay: 0.34s; }
+   
+  

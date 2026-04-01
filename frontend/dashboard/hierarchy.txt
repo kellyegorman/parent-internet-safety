@@ -1,0 +1,20 @@
+dashboard/
+├── index.html
+├── css/
+│   ├── tokens.css          ← design tokens & CSS variables
+│   ├── base.css            ← reset, animations, page shell
+│   ├── components.css      ← cards, buttons, badges, toast
+│   ├── layout.css          ← header, stats grid, main grid, connection bar
+│   ├── search-history.css  ← search list component styles
+│   └── topics-activity.css ← topics cloud & timeline styles
+└── js/
+    ├── app.js              ← entry point, orchestrates init
+    ├── data/
+    │   └── db.js           ← dummy data store (swap for real API)
+    └── components/
+        ├── header.js
+        ├── alert-banner.js
+        ├── stats.js
+        ├── search-history.js
+        ├── topics-activity.js
+        └── toast.js
