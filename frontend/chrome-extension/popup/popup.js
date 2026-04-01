@@ -66,7 +66,7 @@ function addDevice(event) {
             "deviceid": deviceID,
             "userid": userID,
             "device_name": deviceName,
-            "device_token": 
+            "device_token": ""
         })
     })
     .then(async (res) => {
