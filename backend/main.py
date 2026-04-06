@@ -13,6 +13,7 @@ from datetime import datetime, timezone, timedelta
 from pydantic import BaseModel, Field
 from typing import Optional
 from fastapi.middleware.cors import CORSMiddleware
+import uuid
 
 load_dotenv()
 API_KEY = os.getenv("API_KEY")
@@ -57,10 +58,8 @@ class UserCreate(BaseModel):
     password: str = Field(..., min_length=8, max_length=72)
 
 class DeviceCreate(BaseModel):
-    deviceid: str = Field(..., max_length=15)
     userid: str = Field(..., max_length=15)
     device_name: str = Field(..., max_length=100)
-    device_token: Optional[str] = Field(None, max_length=255)
 
 class LoginRequest(BaseModel):
     email: str
@@ -74,6 +73,13 @@ class SearchCreate(BaseModel):
     deviceid: str
     query_text: str
     url: str | None = None
+
+class AlertCreate(BaseModel):
+    deviceid: str
+    categoryid: str
+    severity: str
+    domain: str | None = None
+    reason_code: str | None = None
 
 def create_access_token(*, sub: str) -> str:
     now = datetime.now(timezone.utc)
@@ -106,29 +112,40 @@ def list_tables():
 @app.post("/users")
 def create_user(user: UserCreate, x_api_key: str | None = Header(default=None)):
     require_api_key(x_api_key)
-    try:
-        user_id = str(uuid.uuid4())[:15]
-        hashed_password = pwd_context.hash(user.password)
+    hashed_password = pwd_context.hash(user.password)
 
-        with engine.connect() as conn:
+    try:
+        with engine.begin() as conn:
+            result = conn.execute(text("""
+                SELECT userid
+                FROM users
+                ORDER BY CAST(SUBSTRING(userid, 2) AS UNSIGNED) DESC
+                LIMIT 1
+            """)).fetchone()
+
+            if result:
+                last_num = int(result[0][1:])
+                new_userid = f"u{last_num + 1}"
+            else:
+                new_userid = "u1"
+
             conn.execute(
                 text("""
                     INSERT INTO users (userid, username, email, password_hash)
-                    VALUES (:userid, :username, :email, :password)
+                    VALUES (:userid, :username, :email, :password_hash)
                 """),
                 {
-                    "userid": user_id,
+                    "userid": new_userid,
                     "username": user.username,
                     "email": user.email,
-                    "password": hashed_password 
+                    "password_hash": hashed_password
                 }
             )
-            conn.commit()
 
-        return {"message": "User created", "userid": user_id}
+        return {"message": "User created", "userid": new_userid}
 
     except SQLAlchemyError as e:
-        raise HTTPException(status_code=500, detail=repr(e))
+        raise HTTPException(status_code=500, detail=str(e))
     
 @app.get("/users")
 def get_users():
@@ -192,7 +209,7 @@ def login(body: LoginRequest):
 def add_device(payload: DeviceCreate):
     try:
         with engine.begin() as conn:
-            # Optional: check whether userid exists first
+            # Check if user exists
             user = conn.execute(
                 text("SELECT userid FROM users WHERE userid = :userid"),
                 {"userid": payload.userid}
@@ -201,34 +218,38 @@ def add_device(payload: DeviceCreate):
             if not user:
                 raise HTTPException(status_code=400, detail="Invalid userid")
 
-            # Check if device already exists
-            existing_device = conn.execute(
-                text("SELECT deviceid FROM devices WHERE deviceid = :deviceid"),
-                {"deviceid": payload.deviceid}
+            # Generate new deviceid (d1, d2, d3...)
+            result = conn.execute(
+                text("""
+                    SELECT deviceid
+                    FROM devices
+                    ORDER BY CAST(SUBSTRING(deviceid, 2) AS UNSIGNED) DESC
+                    LIMIT 1
+                """)
             ).fetchone()
 
-            if existing_device:
-                return {
-                    "message": "Device already registered",
-                    "deviceid": payload.deviceid
-                }
+            if result:
+                last_num = int(result[0][1:])
+                new_deviceid = f"d{last_num + 1}"
+            else:
+                new_deviceid = "d1"
 
+            # Insert new device
             conn.execute(
                 text("""
-                    INSERT INTO devices (deviceid, userid, device_name, device_token)
-                    VALUES (:deviceid, :userid, :device_name, :device_token)
+                    INSERT INTO devices (deviceid, userid, device_name)
+                    VALUES (:deviceid, :userid, :device_name)
                 """),
                 {
-                    "deviceid": payload.deviceid,
+                    "deviceid": new_deviceid,
                     "userid": payload.userid,
-                    "device_name": payload.device_name,
-                    "device_token": payload.device_token
+                    "device_name": payload.device_name
                 }
             )
 
         return {
             "message": "Device registered successfully",
-            "deviceid": payload.deviceid
+            "deviceid": new_deviceid
         }
 
     except IntegrityError as e:
@@ -237,7 +258,25 @@ def add_device(payload: DeviceCreate):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
+    
+@app.get("/users/{userid}/devices")
+def get_user_devices(
+    userid: str,
+    x_api_key: str | None = Header(default=None)
+):
+    require_api_key(x_api_key)
 
+    with engine.connect() as conn:
+        rows = conn.execute(
+            text("""
+                SELECT deviceid, device_name, paired_at
+                FROM devices
+                WHERE userid = :userid
+            """),
+            {"userid": userid}
+        ).mappings().all()
+
+    return [dict(row) for row in rows]
 
 @app.post("/searches")
 def create_search(
@@ -246,10 +285,23 @@ def create_search(
 ):
     require_api_key(x_api_key)
 
-    searchid = "S" + uuid.uuid4().hex[:14]
-
     try:
         with engine.begin() as conn:
+            result = conn.execute(
+                    text("""
+                        SELECT searchid
+                        FROM searches
+                        ORDER BY CAST(SUBSTRING(searchid, 2) AS UNSIGNED) DESC
+                        LIMIT 1
+                    """)
+                ).fetchone()
+
+            if result:
+                last_num = int(result[0][1:])
+                searchid = f"s{last_num + 1}"
+            else:
+                searchid = "s1"
+
             conn.execute(
                 text("""
                     INSERT INTO searches (searchid, deviceid, query_text, url)
@@ -270,3 +322,89 @@ def create_search(
 
     except SQLAlchemyError as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+@app.get("/users/{userid}/searches")
+def get_user_searches(
+    userid: str,
+    x_api_key: str | None = Header(default=None)
+):
+    require_api_key(x_api_key)
+
+    with engine.connect() as conn:
+        rows = conn.execute(
+            text("""
+                SELECT s.searchid, s.deviceid, s.query_text, s.url, s.searched_at
+                FROM searches s
+                JOIN devices d ON s.deviceid = d.deviceid
+                WHERE d.userid = :userid
+                ORDER BY s.searched_at DESC
+            """),
+            {"userid": userid}
+        ).mappings().all()
+
+    return [dict(row) for row in rows]
+
+@app.post("/alerts")
+def create_alert(payload: AlertCreate):
+    try: 
+        with engine.begin() as conn:
+            result = conn.execute(
+                    text("""
+                        SELECT alertid
+                        FROM alerts
+                        ORDER BY CAST(SUBSTRING(alertid, 2) AS UNSIGNED) DESC
+                        LIMIT 1
+                    """)
+                ).fetchone()
+
+            if result:
+                last_num = int(result[0][1:])
+                alertid = f"a{last_num + 1}"
+            else:
+                alertid = "a1"
+
+            conn.execute(
+                text("""
+                    INSERT INTO alerts (alertid, deviceid, categoryid, severity, domain, reason_code)
+                    VALUES (:alertid, :deviceid, :categoryid, :severity, :domain, :reason_code)
+                """),
+                {
+                    "alertid": alertid,
+                    "deviceid": payload.deviceid,
+                    "categoryid": payload.categoryid,
+                    "severity": payload.severity,
+                    "domain": payload.domain,
+                    "reason_code": payload.reason_code
+                }
+            )
+        return {
+            "message": "Alert created",
+            "alertid": alertid
+        }
+    
+    except IntegrityError as e:
+        raise HTTPException(status_code=400, detail=f"Database integrity error: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
+
+@app.get("/users/{userid}/alerts")
+def get_user_alerts(
+    userid: str,
+    x_api_key: str | None = Header(default=None)
+):
+    require_api_key(x_api_key)
+
+    with engine.connect() as conn:
+        rows = conn.execute(
+            text("""
+                SELECT a.alertid, a.deviceid, a.categoryid, a.severity,
+                       a.domain, a.reason_code, a.created_at
+                FROM alerts a
+                JOIN devices d ON a.deviceid = d.deviceid
+                WHERE d.userid = :userid
+                ORDER BY a.created_at DESC
+            """),
+            {"userid": userid}
+        ).mappings().all()
+
+    return [dict(row) for row in rows]
