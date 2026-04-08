@@ -28,19 +28,18 @@ LABEL_MAP = {
 # so page full of hate speech scores 1.0, all offensive scores 0.5,
 # all clean scores 0.0. Thresholds below control which tier is triggered.
 
-SEVERE_THRESHOLD   = 0.30  # high density of hate speech
-MODERATE_THRESHOLD = 0.15  # mix of offensive/hate content  
-WATCH_THRESHOLD    = 0.06  # low but non-trivial signal
+SEVERE_THRESHOLD   = 0.80  # high density of hate speech
+MODERATE_THRESHOLD = 0.50  # mix of offensive/hate content  
+WATCH_THRESHOLD    = 0.20  # low but non-trivial signal
 
-# Don't make any judgment on pages with fewer than this many chunks
+# only judge pages with at least this many chunks
 MIN_CHUNKS = 5
 
 # make chunk size larger, give the model more context, less false positives
-CHUNK_SIZE = 100  
+CHUNK_SIZE = 80  
 
 
-# Text preprocessing (unchanged)
-
+# process text
 def remove_entity(raw_text):
     return re.sub(r"&[^\s;]+;", "", raw_text)
 
