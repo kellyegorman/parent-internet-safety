@@ -300,9 +300,9 @@ def main():
         engine = create_engine(DATABASE_URL, pool_pre_ping=True)
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
-        print("✅ Connected successfully!\n")
+        print("Connected successfully!\n")
     except SQLAlchemyError as e:
-        print(f"❌ Connection FAILED: {e}")
+        print(f"Connection FAILED: {e}")
         print("\nTroubleshooting:")
         print("  1. Check your internet connection")
         print("  2. Verify the DATABASE_URL is correct")

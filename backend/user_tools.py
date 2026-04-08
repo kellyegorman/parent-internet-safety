@@ -29,7 +29,7 @@ def list_users():
  
 def create_user(email: str, username: str, password: str):
     if len(password) < 8:
-        print("❌ Password must be at least 8 characters.")
+        print(" Password must be at least 8 characters.")
         return
  
     userid = str(uuid.uuid4())[:15]
@@ -46,16 +46,16 @@ def create_user(email: str, username: str, password: str):
                 "email": email,
                 "password_hash": hashed,
             })
-        print(f"\n✅ User created!")
+        print(f"\n User created!")
         print(f"   Email:    {email}")
         print(f"   Username: {username}")
         print(f"   Password: {password}")
         print(f"\nYou can now log in with these credentials in the extension.\n")
     except Exception as e:
         if "Duplicate" in str(e):
-            print(f"❌ A user with that email or username already exists.")
+            print(f" A user with that email or username already exists.")
         else:
-            print(f"❌ Error: {e}")
+            print(f" Error: {e}")
  
  
 if __name__ == "__main__":
@@ -71,7 +71,7 @@ if __name__ == "__main__":
         list_users()
     elif args.create:
         if not all([args.email, args.username, args.password]):
-            print("❌ --create requires --email, --username, and --password")
+            print(" --create requires --email, --username, and --password")
         else:
             create_user(args.email, args.username, args.password)
     else:

@@ -1,12 +1,12 @@
 """
-
+The full pipeline:
   DB (searches table, flagged=FALSE)
     -> profanity check
     -> ML offensive/hate check
     -> LDA topic extraction
     -> DB (alerts table) + mark search as flagged
  
-running steps:
+runnign instructions:
   # One-time setup (creates tables + seeds categories):
   python flagging_pipeline.py --setup
  
@@ -16,7 +16,7 @@ running steps:
   # Run continuously, checking every 30 seconds:
   python flagging_pipeline.py --loop --interval 30
  
-make sure to install these:
+requirements:
   pip install sqlalchemy pymysql python-dotenv better-profanity \
               requests beautifulsoup4
   (offensive_flag.py also needs keras, tensorflow, nltk, joblib)
@@ -39,25 +39,23 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
  
-# ── Database connection ───────────────────────────────────────────────────────
+# database
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
     "mysql+pymysql://root:ZNrabNeFJKmDjnbNgxoMJPjMiStFQcwH@trolley.proxy.rlwy.net:44931/railway"
 )
 engine = create_engine(DATABASE_URL, pool_pre_ping=True)
  
-# ── Alert category IDs (must match what's seeded in the DB) ──────────────────
+# alert categories
 CAT_PROFANITY = "CAT_PROFANITY"
 CAT_OFFENSIVE = "CAT_OFFENSIVE"
 CAT_TOPICS    = "CAT_TOPICS"
  
  
-# ═══════════════════════════════════════════════════════════════════════════════
-# STEP 0 — Database setup (run once with --setup flag)
-# ═══════════════════════════════════════════════════════════════════════════════
+# database setup (run w/ --setup)
  
 def setup_database():
-    """Create missing tables and seed alert categories. Safe to run multiple times."""
+    #create missing tables and seed alert categories. safe to run multiple times.
     log.info("Running database setup…")
     with engine.begin() as conn:
  
@@ -113,13 +111,10 @@ def setup_database():
                 VALUES (:id, :name, :desc)
             """), {"id": cid, "name": name, "desc": desc})
  
-    log.info("✅ Database setup complete.")
+    log.info("Database setup complete.")
  
  
-# ═══════════════════════════════════════════════════════════════════════════════
-# STEP 1 — Read unprocessed searches from DB
-# ═══════════════════════════════════════════════════════════════════════════════
- 
+# Read unprocessed searches from DB 
 def get_unflagged_searches(limit: int = 50) -> list:
     """Return rows from searches where flagged=FALSE and url is not null."""
     with engine.connect() as conn:
@@ -135,12 +130,10 @@ def get_unflagged_searches(limit: int = 50) -> list:
     return rows
  
  
-# ═══════════════════════════════════════════════════════════════════════════════
-# STEP 2 — Run flagging checks
-# ═══════════════════════════════════════════════════════════════════════════════
- 
+# run flagging checks 
 def run_profanity_check(url: str) -> bool:
-    """Returns True if the page contains profanity. Fails safe (False) on error."""
+    
+    # if page has profanity -> true else -> false
     try:
         from better_profanity import profanity as prof
         import requests
@@ -192,10 +185,7 @@ def run_topic_extraction(url: str) -> list[str]:
         return []
  
  
-# ═══════════════════════════════════════════════════════════════════════════════
-# STEP 3 — Write results back to DB
-# ═══════════════════════════════════════════════════════════════════════════════
- 
+# send results back to db 
 def write_alert(deviceid: str, categoryid: str, severity: str,
                 domain: str, reason_code: str):
     alertid = "A" + uuid.uuid4().hex[:14]
@@ -227,30 +217,27 @@ def extract_domain(url: str) -> str:
         return url[:255]
  
  
-# ═══════════════════════════════════════════════════════════════════════════════
-# STEP 4 — Process a single search row (Steps 1→2→3 for one URL)
-# ═══════════════════════════════════════════════════════════════════════════════
- 
+# Process a single search row (Steps 1,2,3 for 1 URL) 
 def process_search(searchid: str, deviceid: str, url: str, query_text: str):
     log.info(f"Processing [{searchid}] {url}")
     domain = extract_domain(url)
     alerts_written = 0
  
-    # ── Profanity ──────────────────────────────────────────────────────────────
+    #  Profanity 
     has_profanity = run_profanity_check(url)
     log.info(f"  Profanity: {'YES' if has_profanity else 'no'}")
     if has_profanity:
         write_alert(deviceid, CAT_PROFANITY, "watch", domain, "PROFANITY_DETECTED")
         alerts_written += 1
  
-    # ── Offensive / hate-speech ML ────────────────────────────────────────────
+    #  Offensive  ML 
     offensive_result = run_offensive_check(url)
     log.info(f"  Offensive: {offensive_result}")
     if offensive_result == "FLAGGED":
         write_alert(deviceid, CAT_OFFENSIVE, "moderate", domain, "OFFENSIVE_CONTENT")
         alerts_written += 1
  
-    # ── Topic extraction (always stored as informational) ─────────────────────
+    #  Topic 
     topics = run_topic_extraction(url)
     log.info(f"  Topics: {topics}")
     if topics:
@@ -258,15 +245,12 @@ def process_search(searchid: str, deviceid: str, url: str, query_text: str):
         write_alert(deviceid, CAT_TOPICS, "watch", domain, reason)
         alerts_written += 1
  
-    # Mark as processed so we don't re-check it next time
+    # Mark as processed so  don't re-check it next time
     mark_search_flagged(searchid)
     log.info(f"  ✓ Done — {alerts_written} alert(s) written\n")
  
  
-# ═══════════════════════════════════════════════════════════════════════════════
-# MAIN — run once or in a loop
-# ═══════════════════════════════════════════════════════════════════════════════
- 
+# MAIN — run once or in a loop 
 def run_once():
     rows = get_unflagged_searches()
     if not rows:
