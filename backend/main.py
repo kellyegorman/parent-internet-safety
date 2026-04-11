@@ -1,6 +1,7 @@
 import os
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Header
+from fastapi import FastAPI, HTTPException, Header, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.exc import IntegrityError
@@ -87,6 +88,30 @@ def create_access_token(*, sub: str) -> str:
     exp = now + timedelta(minutes=JWT_EXPIRE_MIN)
     payload = {"sub": sub, "iat": int(now.timestamp()), "exp": int(exp.timestamp())}
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALG)
+
+security = HTTPBearer()
+
+def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    token = credentials.credentials
+
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+        userid = payload.get("sub")
+        if not userid:
+            raise HTTPException(status_code=401, detail="Invalid token")
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    with engine.connect() as conn:
+        row = conn.execute(
+            text("SELECT userid, email, username, join_date FROM users WHERE userid = :userid"),
+            {"userid": userid}
+        ).fetchone()
+
+    if not row:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return dict(row._mapping)
 
 @app.get("/health")
 def health():
@@ -409,3 +434,7 @@ def get_user_alerts(
         ).mappings().all()
 
     return [dict(row) for row in rows]
+
+@app.get("/me")
+def read_me(current_user = Depends(get_current_user)):
+    return current_user
