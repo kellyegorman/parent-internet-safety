@@ -68,6 +68,7 @@ class LoginRequest(BaseModel):
 class LoginResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
+    userid: str
 
 class SearchCreate(BaseModel):
     deviceid: str
@@ -197,7 +198,7 @@ def login(body: LoginRequest):
             raise HTTPException(status_code=401, detail="Invalid credentials")
 
         token = create_access_token(sub=str(userid))
-        return {"access_token": token, "token_type": "bearer"}
+        return {"access_token": token, "token_type": "bearer", "userid": userid}
 
     except HTTPException:
         raise
