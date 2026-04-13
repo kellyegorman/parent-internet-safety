@@ -50,7 +50,7 @@ function logIn(event) {
     })
     .then(async (res) => {
         var loginBody = await res.text();
-        if (loginBody.includes("bearer")) {
+        if (res.status == 200) {
             var token = JSON.parse(loginBody).access_token;
             message.style.color = "green";
             message.textContent = "Login successful! Fetching information...";
@@ -65,7 +65,7 @@ function logIn(event) {
             })
             .then(async (res) => {
                 const userIDBody = await res.text();
-                if (userIDBody.includes("userid")) {
+                if (res.status == 200) {
                     const userID = JSON.parse(userIDBody).userid;
                     chrome.storage.local.set({ loggedIn: true, token: token, email: email, userID: userID });
                     document.getElementById("loginContainer").hidden = true;
@@ -109,7 +109,7 @@ function addDevice(event) {
         })
         .then(async (res) => {
             const deviceBody = await res.text();
-            if (deviceBody.includes("deviceid")) {
+            if (res.status == 200) {
                 const deviceID = JSON.parse(deviceBody).deviceid;
                 chrome.storage.local.set({ deviceID: deviceID, deviceName: deviceName });
                 message.style.color = "green";
