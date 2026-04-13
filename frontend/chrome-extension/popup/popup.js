@@ -1,4 +1,4 @@
-const API_BASE = "http://127.0.0.1:8000";
+const API_BASE = "https://senior-project-production-4c90.up.railway.app";
 // make sure this is the same as API_KEY in backend .env !!
 const API_KEY  = os.getenv("railway_api");  
  
@@ -77,8 +77,7 @@ document.getElementById("deviceForm").addEventListener("submit", async (event) =
             body: JSON.stringify({
                 deviceid:     deviceid,
                 userid:       userid,
-                device_name:  deviceName,
-                device_token: deviceid + "_token",
+                device_name:  deviceName
             }),
         });
  
