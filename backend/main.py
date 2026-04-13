@@ -78,7 +78,6 @@ class DeviceCreate(BaseModel):
     deviceid: str     = Field(..., max_length=15)
     userid: str       = Field(..., max_length=15)
     device_name: str  = Field(..., max_length=100)
-    device_token: Optional[str] = Field(None, max_length=255)
 
 class LoginRequest(BaseModel):
     email: str
@@ -202,9 +201,9 @@ def add_device(payload: DeviceCreate):
                 return {"message": "Device already registered", "deviceid": payload.deviceid}
 
             conn.execute(
-                text("INSERT INTO devices (deviceid, userid, device_name, device_token) VALUES (:deviceid, :userid, :device_name, :device_token)"),
+                text("INSERT INTO devices (deviceid, userid, device_name) VALUES (:deviceid, :userid, :device_name)"),
                 {"deviceid": payload.deviceid, "userid": payload.userid,
-                 "device_name": payload.device_name, "device_token": payload.device_token}
+                 "device_name": payload.device_name}
             )
         return {"message": "Device registered successfully", "deviceid": payload.deviceid}
     except IntegrityError as e:
