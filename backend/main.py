@@ -14,7 +14,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
 
-API_KEY      = os.getenv("API_KEY")
+# change to railway API key from eleanor
+API_KEY      = os.getenv("railway_api")
 JWT_SECRET   = os.getenv("JWT_SECRET")
 JWT_ALG      = os.getenv("JWT_ALG", "HS256")
 JWT_EXPIRE_MIN = int(os.getenv("JWT_EXPIRE_MIN", "60"))

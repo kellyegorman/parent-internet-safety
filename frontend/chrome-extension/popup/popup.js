@@ -1,6 +1,6 @@
 const API_BASE = "http://127.0.0.1:8000";
 // make sure this is the same as API_KEY in backend .env !!
-const API_KEY  = "api_key_1234567";  
+const API_KEY  = os.getenv("railway_api");  
  
 // if already logged in, skip straight to success screen
 chrome.storage.local.get(["deviceid", "deviceName"], (data) => {
