@@ -1,7 +1,7 @@
 chrome.extension.inIncognitoContext = true;
 
 // Put in your API key here
-const apiKey = "";
+const apiKey = "4c133d290fadef7b21445b95694dda610f1741f083ad7e680c251c059f074dcf";
 
 // Populating popup on load based on login and device registration status
 getLoggedIn().then(loggedIn => {

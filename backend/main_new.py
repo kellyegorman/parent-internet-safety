@@ -75,7 +75,6 @@ class UserCreate(BaseModel):
     password: str = Field(..., min_length=8, max_length=72)
 
 class DeviceCreate(BaseModel):
-    deviceid: str     = Field(..., max_length=15)
     userid: str       = Field(..., max_length=15)
     device_name: str  = Field(..., max_length=100)
 
@@ -186,32 +185,86 @@ def login(body: LoginRequest):
 def add_device(payload: DeviceCreate):
     try:
         with engine.begin() as conn:
+            # Check if user exists
             user = conn.execute(
                 text("SELECT userid FROM users WHERE userid = :userid"),
                 {"userid": payload.userid}
             ).fetchone()
+
             if not user:
                 raise HTTPException(status_code=400, detail="Invalid userid")
 
-            existing = conn.execute(
-                text("SELECT deviceid FROM devices WHERE deviceid = :deviceid"),
-                {"deviceid": payload.deviceid}
+            # Generate new deviceid (d1, d2, d3...)
+            result = conn.execute(
+                text("""
+                    SELECT deviceid
+                    FROM devices
+                    ORDER BY CAST(SUBSTRING(deviceid, 2) AS UNSIGNED) DESC
+                    LIMIT 1
+                """)
             ).fetchone()
-            if existing:
-                return {"message": "Device already registered", "deviceid": payload.deviceid}
 
+            if result:
+                last_num = int(result[0][1:])
+                new_deviceid = f"d{last_num + 1}"
+            else:
+                new_deviceid = "d1"
+
+            # Insert new device
             conn.execute(
-                text("INSERT INTO devices (deviceid, userid, device_name) VALUES (:deviceid, :userid, :device_name)"),
-                {"deviceid": payload.deviceid, "userid": payload.userid,
-                 "device_name": payload.device_name}
+                text("""
+                    INSERT INTO devices (deviceid, userid, device_name)
+                    VALUES (:deviceid, :userid, :device_name)
+                """),
+                {
+                    "deviceid": new_deviceid,
+                    "userid": payload.userid,
+                    "device_name": payload.device_name
+                }
             )
-        return {"message": "Device registered successfully", "deviceid": payload.deviceid}
+
+        return {
+            "message": "Device registered successfully",
+            "deviceid": new_deviceid
+        }
+
     except IntegrityError as e:
         raise HTTPException(status_code=400, detail=f"Database integrity error: {str(e)}")
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
+
+# @app.post("/devices")
+# def add_device(payload: DeviceCreate):
+#     try:
+#         with engine.begin() as conn:
+#             user = conn.execute(
+#                 text("SELECT userid FROM users WHERE userid = :userid"),
+#                 {"userid": payload.userid}
+#             ).fetchone()
+#             if not user:
+#                 raise HTTPException(status_code=400, detail="Invalid userid")
+
+#             existing = conn.execute(
+#                 text("SELECT deviceid FROM devices WHERE deviceid = :deviceid"),
+#                 {"deviceid": payload.deviceid}
+#             ).fetchone()
+#             if existing:
+#                 return {"message": "Device already registered", "deviceid": payload.deviceid}
+
+#             conn.execute(
+#                 text("INSERT INTO devices (deviceid, userid, device_name) VALUES (:deviceid, :userid, :device_name)"),
+#                 {"deviceid": payload.deviceid, "userid": payload.userid,
+#                  "device_name": payload.device_name}
+#             )
+#         return {"message": "Device registered successfully", "deviceid": payload.deviceid}
+#     except IntegrityError as e:
+#         raise HTTPException(status_code=400, detail=f"Database integrity error: {str(e)}")
+#     except HTTPException:
+#         raise
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
 
 @app.get("/users/{userid}/devices")
 def get_user_devices(userid: str, current_user: str = Depends(get_current_userid)):
@@ -228,21 +281,66 @@ def get_user_devices(userid: str, current_user: str = Depends(get_current_userid
         raise HTTPException(status_code=500, detail=str(e))
 
 
-
 @app.post("/searches")
-def create_search(search: SearchCreate, x_api_key: str | None = Header(default=None)):
+def create_search(
+    search: SearchCreate,
+    x_api_key: str | None = Header(default=None)
+):
     require_api_key(x_api_key)
-    searchid = "S" + uuid.uuid4().hex[:14]
+
     try:
         with engine.begin() as conn:
+            result = conn.execute(
+                    text("""
+                        SELECT searchid
+                        FROM searches
+                        ORDER BY CAST(SUBSTRING(searchid, 2) AS UNSIGNED) DESC
+                        LIMIT 1
+                    """)
+                ).fetchone()
+
+            if result:
+                last_num = int(result[0][1:])
+                searchid = f"s{last_num + 1}"
+            else:
+                searchid = "s1"
+
             conn.execute(
-                text("INSERT INTO searches (searchid, deviceid, query_text, url) VALUES (:searchid, :deviceid, :query_text, :url)"),
-                {"searchid": searchid, "deviceid": search.deviceid,
-                 "query_text": search.query_text, "url": search.url}
+                text("""
+                    INSERT INTO searches (searchid, deviceid, query_text, url)
+                    VALUES (:searchid, :deviceid, :query_text, :url)
+                """),
+                {
+                    "searchid": searchid,
+                    "deviceid": search.deviceid,
+                    "query_text": search.query_text,
+                    "url": search.url
+                }
             )
-        return {"message": "Search stored successfully", "searchid": searchid}
+
+        return {
+            "message": "Search stored successfully",
+            "searchid": searchid
+        }
+
     except SQLAlchemyError as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# @app.post("/searches")
+# def create_search(search: SearchCreate, x_api_key: str | None = Header(default=None)):
+#     require_api_key(x_api_key)
+#     searchid = "S" + uuid.uuid4().hex[:14]
+#     try:
+#         with engine.begin() as conn:
+#             conn.execute(
+#                 text("INSERT INTO searches (searchid, deviceid, query_text, url) VALUES (:searchid, :deviceid, :query_text, :url)"),
+#                 {"searchid": searchid, "deviceid": search.deviceid,
+#                  "query_text": search.query_text, "url": search.url}
+#             )
+#         return {"message": "Search stored successfully", "searchid": searchid}
+#     except SQLAlchemyError as e:
+#         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/users/{userid}/searches")
 def get_user_searches(userid: str, current_user: str = Depends(get_current_userid)):
