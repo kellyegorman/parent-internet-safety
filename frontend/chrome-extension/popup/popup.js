@@ -1,115 +1,163 @@
-const API_BASE = "https://senior-project-production-4c90.up.railway.app";
-// make sure this is the same as API_KEY in backend .env !!
-const API_KEY  = os.getenv("railway_api");  
- 
-// if already logged in, skip straight to success screen
-chrome.storage.local.get(["deviceid", "deviceName"], (data) => {
-    if (data.deviceid) {
-        showSuccess(data.deviceName || "Your Device");
-    }
-});
- 
-// login
-document.getElementById("loginForm").addEventListener("submit", async (event) => {
-    event.preventDefault();
- 
-    const email    = document.getElementById("email").value.trim();
-    const password = document.getElementById("password").value;
-    const message  = document.getElementById("message");
- 
-    message.style.color = "#888";
-    message.textContent = "Logging in…";
- 
-    try {
-        const res = await fetch(`${API_BASE}/login`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email, password }),
-        });
- 
-        if (res.ok) {
-            const data = await res.json();
-            // get the userid -> register a device
-            const uidRes = await fetch(
-                `${API_BASE}/userid?email=${encodeURIComponent(email)}`,
-                { headers: { "x-api-key": API_KEY } }
-            );
-            const uidData = await uidRes.json();
-            await chrome.storage.local.set({
-                token:  data.access_token,
-                userid: uidData.userid,
-                email:  email,
-            });
- 
-            message.style.color = "green";
-            message.textContent = "Logged in!";
+chrome.extension.inIncognitoContext = true;
+
+// Put in your API key here
+const apiKey = "";
+
+// Populating popup on load based on login and device registration status
+getLoggedIn().then(loggedIn => {
+    getDeviceName().then(deviceName => {
+        const registered = deviceName.length > 0;
+        
+        if (loggedIn) {
             document.getElementById("loginContainer").hidden = true;
-            document.getElementById("deviceContainer").hidden = false;
- 
-        } else {
+            if (registered) {
+                document.getElementById("deviceContainer").hidden = true;
+                document.getElementById("successContainer").hidden = true;
+                document.getElementById("deviceCurrentName").textContent = deviceName;
+                document.getElementById("idleContainer").hidden = false;
+            }
+            else {
+                document.getElementById("deviceContainer").hidden = false;
+            }
+        }
+
+    });
+});
+
+
+// Form submission handlers for login and device addition
+document.getElementById("loginForm").addEventListener("submit", logIn);
+document.getElementById("deviceForm").addEventListener("submit", addDevice);
+
+// Log in user
+function logIn(event) {
+    event.preventDefault();
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+    const message = document.getElementById("message");
+    message.style.color = "gray";
+    message.textContent = "Attempting login with email: " + email;
+
+    fetch("https://senior-project-production-4c90.up.railway.app/login", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            "email": email,
+            "password": password
+        })
+    })
+    .then(async (res) => {
+        var loginBody = await res.text();
+        if (res.status == 200) {
+            var token = JSON.parse(loginBody).access_token;
+            message.style.color = "green";
+            message.textContent = "Login successful! Fetching information...";
+            const url = "https://senior-project-production-4c90.up.railway.app/userid";
+            const params = new URLSearchParams({ email: email });
+            fetch(`${url}?${params.toString()}`, {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                    "x-api-key": apiKey
+                }
+            })
+            .then(async (res) => {
+                const userIDBody = await res.text();
+                if (res.status == 200) {
+                    const userID = JSON.parse(userIDBody).userid;
+                    chrome.storage.local.set({ loggedIn: true, token: token, email: email, userID: userID });
+                    document.getElementById("loginContainer").hidden = true;
+                    document.getElementById("deviceContainer").hidden = false;
+                }
+                else {
+                    message.style.color = "red";
+                    message.textContent = "User information retrieval failed.";
+                }
+            })
+            .catch(err => console.error("fetch error:", err))
+        } 
+        else {
             message.style.color = "red";
             message.textContent = "Invalid email or password.";
         }
-    } catch (e) {
-        message.style.color = "red";
-        message.textContent = "Cannot reach server — is it running?";
-        console.error(e);
-    }
-});
- 
-// register device
-document.getElementById("deviceForm").addEventListener("submit", async (event) => {
+    })
+    .catch(err => console.error("fetch error:", err));
+
+    
+};
+
+
+// Add device for monitoring
+function addDevice(event) {
     event.preventDefault();
- 
-    const deviceName    = document.getElementById("deviceName").value.trim();
-    const deviceMessage = document.getElementById("deviceMessage");
- 
-    deviceMessage.style.color = "#888";
-    deviceMessage.textContent = "Registering…";
- 
-    const { userid, deviceid: existingId } = await chrome.storage.local.get(["userid", "deviceid"]);
-    const deviceid = existingId || ("D" + Math.random().toString(36).slice(2, 14).toUpperCase());
- 
-    try {
-        const res = await fetch(`${API_BASE}/devices`, {
+    const deviceName = document.getElementById("deviceName").value;
+    const message = document.getElementById("deviceMessage");
+    message.style.color = "gray";
+    message.textContent = "Adding device...";
+    getUserID().then(userID => {
+        fetch("https://senior-project-production-4c90.up.railway.app/devices", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+                "Content-Type": "application/json",
+            },
             body: JSON.stringify({
-                deviceid:     deviceid,
-                userid:       userid,
-                device_name:  deviceName
-            }),
-        });
- 
-        const data = await res.json();
- 
-        // "already registered" is fine — just continue
-        if (res.ok || (data.detail && data.detail.includes("already registered"))) {
-            await chrome.storage.local.set({ deviceid, deviceName });
-            showSuccess(deviceName);
-        } else {
-            deviceMessage.style.color = "red";
-            deviceMessage.textContent = data.detail || "Registration failed.";
-        }
-    } catch (e) {
-        deviceMessage.style.color = "red";
-        deviceMessage.textContent = "Cannot reach server.";
-        console.error(e);
-    }
-});
- 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-function showSuccess(deviceName) {
-    document.getElementById("loginContainer").hidden  = true;
-    document.getElementById("deviceContainer").hidden = true;
-    document.getElementById("successContainer").hidden = false;
-    document.getElementById("deviceTitle").textContent = deviceName;
-}
- 
-const logoutBtn = document.getElementById("logoutBtn");
-if (logoutBtn) {
-    logoutBtn.addEventListener("click", async () => {
-        await chrome.storage.local.clear();
-        location.reload();
+                "userid": userID,
+                "device_name": deviceName
+            })
+        })
+        .then(async (res) => {
+            const deviceBody = await res.text();
+            if (res.status == 200) {
+                const deviceID = JSON.parse(deviceBody).deviceid;
+                chrome.storage.local.set({ deviceID: deviceID, deviceName: deviceName });
+                message.style.color = "green";
+                message.textContent = "Device added successfully!";
+                document.getElementById("deviceContainer").hidden = true;
+                document.getElementById("deviceTitle").textContent = deviceName;
+                document.getElementById("successContainer").hidden = false;
+            }
+            else {
+                message.style.color = "red";
+                message.textContent = "Device addition failed.";
+            }
+        })
+        .catch(err => console.error("fetch error:", err));
     });
+}
+
+async function getLoggedIn() {
+    const result = await chrome.storage.local.get("loggedIn");
+    const loggedIn = result.loggedIn || false;
+    console.log("Retrieved login status: ", loggedIn);
+    return loggedIn;
+}
+
+async function getToken() {
+    const result = await chrome.storage.local.get("token");
+    const token = result.token || "";
+    console.log("Retrieved token:", token.substring(0, 3) + "...");
+    return token;
+}
+
+async function getUserID() {
+    const result = await chrome.storage.local.get("userID");
+    const userID = result.userID || "";
+    console.log("Retrieved user ID: ", userID);
+    return userID;
+}
+
+async function getDeviceID() {
+    const result = await chrome.storage.local.get("deviceID");
+    const deviceID = result.deviceID || "";
+    console.log("Retrieved device ID: ", deviceID);
+    return deviceID;
+}
+
+async function getDeviceName() {
+    const result = await chrome.storage.local.get("deviceName");
+    const deviceName = result.deviceName || "";
+    console.log("Retrieved device name: ", deviceName);
+    return deviceName;
 }

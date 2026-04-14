@@ -1,0 +1,16 @@
+{
+  "name": "Guardian",
+  "description": "Child Browser Safety",
+  "version": "1.0",
+  "manifest_version": 3,
+  "action": {
+    "default_title": "Open Popup",
+    "default_popup": "frontend/chrome-extension/popup/popup.html",
+    "default_icon": "frontend/chrome-extension/images/shield_heart_transparent.png"
+  },
+  "background": { 
+    "service_worker": "frontend/chrome-extension/background.js"
+  },
+  "permissions": ["storage", "activeTab", "scripting", "tabs", "history", "fontSettings", "webNavigation", "sidePanel"],
+  "host_permissions": ["<all_urls>"]
+}
