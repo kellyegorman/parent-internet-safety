@@ -8,12 +8,6 @@ from nltk.corpus import stopwords
 import re
 import requests
 from bs4 import BeautifulSoup
-from keras import layers
-import keras
-from keras.models import load_model
-import os
-import joblib
-import tensorflow.keras.backend as K
 
 MODEL_PATH = os.path.join(os.path.dirname(__file__), "offensive_model.keras")
 model = load_model(MODEL_PATH, compile=False)
@@ -29,109 +23,134 @@ LABEL_MAP = {
     2: "NEITHER"
 }
 
-# remove html entity:
+# thresholds: weighted score per chunk: HATE_SPEECH=2, OFFENSIVE=1, NEITHER=0
+# final score = total_weighted_points / total_possible_points
+# so page full of hate speech scores 1.0, all offensive scores 0.5,
+# all clean scores 0.0. Thresholds below control which tier is triggered.
+
+SEVERE_THRESHOLD   = 0.80  # high density of hate speech
+MODERATE_THRESHOLD = 0.50  # mix of offensive/hate content  
+WATCH_THRESHOLD    = 0.20  # low but non-trivial signal
+
+# only judge pages with at least this many chunks
+MIN_CHUNKS = 5
+
+# make chunk size larger, give the model more context, less false positives
+CHUNK_SIZE = 80  
+
+
+# process text
 def remove_entity(raw_text):
-    entity_regex = r"&[^\s;]+;"
-    text = re.sub(entity_regex, "", raw_text)
-    return text
+    return re.sub(r"&[^\s;]+;", "", raw_text)
 
-# change the user tags
 def change_user(raw_text):
-    regex = r"@([^ ]+)"
-    text = re.sub(regex, "user", raw_text)
+    return re.sub(r"@([^ ]+)", "user", raw_text)
 
-    return text
-
-# remove urls
 def remove_url(raw_text):
-    url_regex = r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))"
-    text = re.sub(url_regex, '', raw_text)
+    url_regex = r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»""'']))"
+    return re.sub(url_regex, '', raw_text)
 
-    return text
-
-# remove unnecessary symbols
 def remove_noise_symbols(raw_text):
     text = raw_text.replace('"', '')
     text = text.replace("'", '')
     text = text.replace("!", '')
     text = text.replace("`", '')
     text = text.replace("..", '')
-
     return text
 
-# remove stopwords
-def remove_stopwords(raw_text):
-    tokenize = nltk.word_tokenize(raw_text)
-    text = [word for word in tokenize if not word.lower() in stop_words]
-    text = " ".join(text)
-
-    return text
-
-## this function in to clean all the dataset by utilizing all the function above
 def preprocess(datas):
-    clean = []
-    # change the @xxx into "user"
     clean = [change_user(text) for text in datas]
-    # remove emojis (specifically unicode emojis)
     clean = [remove_entity(text) for text in clean]
-    # remove urls
     clean = [remove_url(text) for text in clean]
-    # remove trailing stuff
     clean = [remove_noise_symbols(text) for text in clean]
-
-    # for now im not going to remove stopwords, might help improve accuracy 
-    # # remove stopwords
-    # clean = [remove_stopwords(text) for text in clean]
-
     return clean
 
+
+# get URL
 def get_url_text(url):
     try:
-        response = requests.get(url)
+        headers = {"User-Agent": "Mozilla/5.0"}
+        response = requests.get(url, headers=headers, timeout=10)
         response.raise_for_status()
         soup = BeautifulSoup(response.content, "html.parser")
-        page_text = soup.get_text(separator='\n', strip=True)
-        return page_text
+
+        # remove noise
+        for tag in soup(["script", "style", "nav", "footer", "header"]):
+            tag.decompose()
+
+        return soup.get_text(separator='\n', strip=True)
     except requests.exceptions.RequestException as e:
-        print("Can't access this URL!")
-        print(f"An error occurred: {e}")
+        print(f"Can't access this URL: {e}")
         return None
 
-def split_into_chunks(text, max_words=40):
-    words = text.split()
-    chunks = []
-    for i in range(0, len(words), max_words):
-        chunks.append(" ".join(words[i:i+max_words]))
-    return chunks
 
-# use model to predict on new text
+# chunk
+
+def split_into_chunks(text, max_words=CHUNK_SIZE):
+    words = text.split()
+    return [" ".join(words[i:i+max_words]) for i in range(0, len(words), max_words)]
+
+
+#  predict each chunk
+
 def predict_offensive(text):
     clean_text = preprocess([text])[0]
     seq = tokenizer.texts_to_sequences([clean_text])
     padded_seq = pad_sequences(seq, maxlen=max_length)
-    pred = model.predict(padded_seq)
+    pred = model.predict(padded_seq, verbose=0)
     pred_class = pred.argmax(axis=1)[0]
     return LABEL_MAP[pred_class]
 
+
+# main feature
+
 def predict_offensive_from_url(url):
+    """
+    Returns one of:
+      "severe"   — high concentration of hate speech
+      "moderate" — meaningful offensive/hate content
+      "watch"    — low but present signal worth monitoring
+      "clean"    — no significant offensive content detected
+      "insufficient_data" — page too short to judge reliably
+      None       — page could not be fetched
+    """
     url_text = get_url_text(url)
     if not url_text:
         return None
+
     chunks = split_into_chunks(url_text)
+
+    if len(chunks) < MIN_CHUNKS:
+        return "insufficient_data"
+
     results = [predict_offensive(chunk) for chunk in chunks]
 
-    # print the chunks labelled as HATE_SPEECH or OFFENSIVE
-    for i, result in enumerate(results):
-        if result in ["HATE_SPEECH", "OFFENSIVE"]:
-            print(f"Chunk {i}: {result}: {chunks[i]}")
+    # Weighted scoring: hate speech counts double vs. merely offensive
+    # This prevents a page with one hate chunk and many offensive chunks from being downgraded unfairly, and vice versa.
+    hate_count      = results.count("HATE_SPEECH")
+    offensive_count = results.count("OFFENSIVE")
+    total_chunks    = len(results)
 
-    # if over half of the chunks are flagged, flag the whole text
-    if results.count("HATE_SPEECH") + results.count("OFFENSIVE") > len(results) / 2:
-        return "FLAGGED"
+    weighted_score = (hate_count * 2 + offensive_count * 1) / (total_chunks * 2)
+
+    # Log flagged chunks for debugging
+    for i, result in enumerate(results):
+        if result in ("HATE_SPEECH", "OFFENSIVE"):
+            print(f"  Chunk {i} [{result}]: {chunks[i][:80]}…")
+
+    print(f"  Score: {weighted_score:.3f} | hate={hate_count} offensive={offensive_count} total={total_chunks}")
+
+    if weighted_score >= SEVERE_THRESHOLD:
+        return "severe"
+    elif weighted_score >= MODERATE_THRESHOLD:
+        return "moderate"
+    elif weighted_score >= WATCH_THRESHOLD:
+        return "watch"
     else:
-        return "CLEAN"
-       
+        return "clean"
 
 
 if __name__ == "__main__":
-    print(predict_offensive_from_url("https://wwf.org.au/blogs/9-interesting-platypus-facts/"))
+    url = "https://wwf.org.au/blogs/9-interesting-platypus-facts/"
+    result = predict_offensive_from_url(url)
+    print(f"\nVerdict: {result}")

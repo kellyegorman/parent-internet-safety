@@ -4,109 +4,602 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Parent Dashboard</title>
- 
-  <!-- Stylesheets (load order matters) -->
-  <link rel="stylesheet" href="css/tokens.css" />
-  <link rel="stylesheet" href="css/base.css" />
-  <link rel="stylesheet" href="css/components.css" />
-  <link rel="stylesheet" href="css/layout.css" />
-  <link rel="stylesheet" href="css/search-history.css" />
-  <link rel="stylesheet" href="css/topics-activity.css" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg:        #f5f4f0;
+      --surface:   #ffffff;
+      --border:    #e4e2db;
+      --text:      #1a1916;
+      --muted:     #8a887f;
+      --accent:    #c84b2f;   
+      --safe:      #3a7d5c;   
+      --radius:    10px;
+      --font:      'DM Sans', sans-serif;
+      --mono:      'DM Mono', monospace;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+
+    .page {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+    }
+
+    .header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      padding-bottom: 28px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 32px;
+    }
+    .header-title {
+      font-size: 18px;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+    }
+    .header-title span {
+      color: var(--muted);
+      font-weight: 300;
+    }
+    .header-meta {
+      font-size: 13px;
+      color: var(--muted);
+      font-family: var(--mono);
+    }
+
+    .alert-banner {
+      display: none;
+      background: #fff5f3;
+      border: 1px solid #f0c4bb;
+      border-left: 3px solid var(--accent);
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      margin-bottom: 24px;
+      gap: 12px;
+    }
+    .alert-banner.visible { display: flex; align-items: flex-start; }
+    .alert-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      margin-top: 5px;
+      flex-shrink: 0;
+    }
+    .alert-text { flex: 1; }
+    .alert-label {
+      font-size: 11px;
+      font-family: var(--mono);
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 3px;
+    }
+    .alert-body { font-size: 13px; color: var(--text); }
+    .alert-domain {
+      font-family: var(--mono);
+      font-size: 12px;
+      background: #f0c4bb44;
+      padding: 1px 6px;
+      border-radius: 4px;
+    }
+    .alert-dismiss {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 18px;
+      line-height: 1;
+      padding: 0 4px;
+    }
+    .alert-dismiss:hover { color: var(--text); }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+    .stat {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 22px;
+    }
+    .stat-value {
+      font-size: 32px;
+      font-weight: 300;
+      letter-spacing: -0.03em;
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+    .stat-value.accent { color: var(--accent); }
+    .stat-label {
+      font-size: 12px;
+      color: var(--muted);
+      font-family: var(--mono);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 3fr 2fr;
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .card-title {
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+    }
+    .card-count {
+      font-size: 12px;
+      font-family: var(--mono);
+      color: var(--muted);
+    }
+
+    .search-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.1s;
+    }
+    .search-item:last-child { border-bottom: none; }
+    .search-item:hover { background: var(--bg); }
+    .search-item.flagged { background: #fff8f7; }
+    .search-main { flex: 1; min-width: 0; }
+    .search-url {
+      font-size: 13px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--text);
+    }
+    .search-time {
+      font-size: 11px;
+      color: var(--muted);
+      font-family: var(--mono);
+      margin-top: 2px;
+    }
+    .severity-tag {
+      font-size: 10px;
+      font-family: var(--mono);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 2px 7px;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+    .tag-clean    { background: #e8f4ee; color: var(--safe); }
+    .tag-watch    { background: #fef3e2; color: #8a6520; }
+    .tag-moderate { background: #fde8e4; color: #a03520; }
+    .tag-severe   { background: #f9d5d0; color: var(--accent); font-weight: 500; }
+    .tag-pending  { background: #f0eeea; color: var(--muted); }
+
+    .alert-item {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .alert-item:last-child { border-bottom: none; }
+    .alert-item-domain {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+    .alert-item-meta {
+      font-size: 11px;
+      color: var(--muted);
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .alert-severity {
+      font-size: 10px;
+      font-family: var(--mono);
+      text-transform: uppercase;
+    }
+    .sev-watch    { color: #8a6520; }
+    .sev-moderate { color: #a03520; }
+    .sev-severe   { color: var(--accent); font-weight: 500; }
+
+    .empty {
+      padding: 36px 20px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .loading {
+      padding: 30px 20px;
+      text-align: center;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+
+    .conn-bar {
+      margin-top: 20px;
+      padding: 10px 16px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      color: var(--muted);
+      font-family: var(--mono);
+    }
+    .conn-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--safe);
+      flex-shrink: 0;
+    }
+    .conn-url { margin-left: auto; }
+
+    #login-gate {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg);
+    }
+    .login-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 40px;
+      width: 340px;
+    }
+    .login-title {
+      font-size: 16px;
+      font-weight: 500;
+      margin-bottom: 4px;
+      letter-spacing: -0.02em;
+    }
+    .login-sub {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 24px;
+    }
+    .field { margin-bottom: 14px; }
+    .field label {
+      display: block;
+      font-size: 12px;
+      font-family: var(--mono);
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+    .field input {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-family: var(--font);
+      font-size: 14px;
+      background: var(--bg);
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .field input:focus { border-color: var(--text); }
+    .btn-login {
+      width: 100%;
+      padding: 10px;
+      background: var(--text);
+      color: var(--bg);
+      border: none;
+      border-radius: 6px;
+      font-family: var(--font);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      margin-top: 6px;
+      transition: opacity 0.15s;
+    }
+    .btn-login:hover { opacity: 0.85; }
+    .login-error {
+      font-size: 12px;
+      color: var(--accent);
+      margin-top: 10px;
+      min-height: 16px;
+      font-family: var(--mono);
+    }
+
+    @media (max-width: 680px) {
+      .grid { grid-template-columns: 1fr; }
+      .stats-row { grid-template-columns: 1fr 1fr; }
+      .stats-row .stat:last-child { grid-column: span 2; }
+    }
+  </style>
 </head>
 <body>
- 
-  <!-- Ambient background glows -->
-  <div class="ambient ambient-a" aria-hidden="true"></div>
-  <div class="ambient ambient-b" aria-hidden="true"></div>
- 
-  <div class="page-wrapper">
- 
-    <!-- ── Header ─────────────────────────────────────────── -->
-    <header class="site-header reveal reveal-1" id="header" role="banner">
-      <!-- Populated by header.js -->
-    </header>
- 
-    <!-- ── Alert Banner ───────────────────────────────────── -->
-    <div id="alert-banner" role="alert" aria-live="polite">
-      <!-- Populated by alert-banner.js -->
+<div id="login-gate">
+  <div class="login-box">
+    <div class="login-title">Parent Dashboard</div>
+    <div class="login-sub">Sign in to view activity</div>
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="login-email" placeholder="you@example.com" />
     </div>
- 
-    <!-- ── Stats Row ──────────────────────────────────────── -->
-    <div class="stats-grid" id="stats-grid">
-      <!-- Populated by stats.js -->
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="login-password" />
     </div>
- 
-    <!-- ── Main Two-Column Grid ───────────────────────────── -->
-    <div class="main-grid">
- 
-      <!-- Search History -->
-      <div class="card reveal reveal-3">
-        <div class="card-header">
-          <div>
-            <div class="card-eyebrow">Activity Log</div>
-            <div class="card-title">Recent Searches</div>
-          </div>
-          <button class="btn btn-ghost">View all</button>
-        </div>
-        <div id="search-list">
-          <!-- Populated by search-history.js -->
-        </div>
+    <button class="btn-login" id="login-btn">Sign in</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<div id="dashboard" style="display:none;">
+  <div class="page">
+
+    <div class="header">
+      <div class="header-title">Parent Dashboard <span>/ Activity Monitor</span></div>
+      <div class="header-meta" id="header-meta">loading…</div>
+    </div>
+
+    <div class="alert-banner" id="alert-banner">
+      <div class="alert-dot"></div>
+      <div class="alert-text">
+        <div class="alert-label">Content Alert</div>
+        <div class="alert-body" id="alert-body"></div>
       </div>
- 
-      <!-- Topics + Activity stacked in right column -->
-      <div style="display:flex; flex-direction:column; gap:18px;">
- 
-        <!-- Topics -->
-        <div class="card reveal reveal-4">
-          <div class="card-header">
-            <div>
-              <div class="card-eyebrow">Interests</div>
-              <div class="card-title">Common Topics</div>
-            </div>
-          </div>
-          <div class="card-body">
-            <div class="topics-cloud" id="topics-cloud">
-              <!-- Populated by topics-activity.js -->
-            </div>
-          </div>
-        </div>
- 
-        <!-- Activity Timeline -->
-        <div class="card reveal reveal-5">
-          <div class="card-header">
-            <div>
-              <div class="card-eyebrow">Log</div>
-              <div class="card-title">Recent Activity</div>
-            </div>
-          </div>
-          <div class="card-body" style="padding-top:14px; padding-bottom:14px;">
-            <div class="timeline" id="timeline">
-              <!-- Populated by topics-activity.js -->
-            </div>
-          </div>
-        </div>
- 
+      <button class="alert-dismiss" id="alert-dismiss">×</button>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat">
+        <div class="stat-value" id="stat-searches">—</div>
+        <div class="stat-label">total searches</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value accent" id="stat-flagged">—</div>
+        <div class="stat-label">flagged pages</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value" id="stat-devices">—</div>
+        <div class="stat-label">devices monitored</div>
       </div>
     </div>
- 
-    <!-- ── Connection Bar ─────────────────────────────────── -->
-    <div class="connection-bar reveal reveal-6">
-      <span class="status-dot live"></span>
-      <span class="connection-bar-text">
-        <strong>Chrome Extension</strong> — connected &amp; monitoring
-      </span>
-      <span class="connection-device" id="connection-device">—</span>
+
+    <div class="grid">
+
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">Recent Searches</div>
+          <div class="card-count" id="search-count"></div>
+        </div>
+        <div id="search-list"><div class="loading">loading…</div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">Flagged Content</div>
+          <div class="card-count" id="alert-count"></div>
+        </div>
+        <div id="alert-list"><div class="loading">loading…</div></div>
+      </div>
+
     </div>
- 
+
+    <div class="conn-bar">
+      <div class="conn-dot"></div>
+      <span id="conn-device">Chrome Extension — monitoring</span>
+      <span class="conn-url" id="conn-url"></span>
+    </div>
+
   </div>
- 
-  <!-- ── Toast ────────────────────────────────────────────── -->
-  <div id="toast" role="status" aria-live="polite">
-    <div class="toast-title"></div>
-    <div class="toast-body"></div>
-  </div>
- 
-  <!-- JS entry point (ES modules) -->
-  <script type="module" src="js/app.js"></script>
+</div>
+
+<script>
+const API   = 'https://senior-project-production-4c90.up.railway.app';
+const APIKEY = 'myapikey123';
+
+let token  = sessionStorage.getItem('token')  || '';
+let userid = sessionStorage.getItem('userid') || '';
+let email  = sessionStorage.getItem('email')  || '';
+
+function fmt(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now - d;
+  const diffMin = Math.floor(diffMs / 60000);
+  const diffH   = Math.floor(diffMs / 3600000);
+  const diffD   = Math.floor(diffMs / 86400000);
+  if (diffMin < 1)  return 'just now';
+  if (diffMin < 60) return `${diffMin}m ago`;
+  if (diffH   < 24) return `${diffH}h ago`;
+  if (diffD   < 7)  return `${diffD}d ago`;
+  return d.toLocaleDateString();
+}
+
+function severityTag(severity) {
+  if (!severity) return `<span class="severity-tag tag-pending">pending</span>`;
+  const cls = { watch: 'tag-watch', moderate: 'tag-moderate', severe: 'tag-severe', clean: 'tag-clean' }[severity] || 'tag-pending';
+  return `<span class="severity-tag ${cls}">${severity}</span>`;
+}
+
+function severityCls(s) {
+  return { watch: 'sev-watch', moderate: 'sev-moderate', severe: 'sev-severe' }[s] || 'sev-watch';
+}
+
+async function apiFetch(path, opts = {}) {
+  const headers = { 'Content-Type': 'application/json', 'x-api-key': APIKEY, ...opts.headers };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await fetch(API + path, { ...opts, headers });
+  if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
+  return res.json();
+}
+
+async function doLogin() {
+  const emailVal = document.getElementById('login-email').value.trim();
+  const passVal  = document.getElementById('login-password').value;
+  const errEl    = document.getElementById('login-error');
+  errEl.textContent = '';
+
+  try {
+    const loginData = await apiFetch('/login', {
+      method: 'POST',
+      body: JSON.stringify({ email: emailVal, password: passVal })
+    });
+    token = loginData.access_token;
+
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    userid = payload.sub;
+    email  = emailVal;
+
+    sessionStorage.setItem('token',  token);
+    sessionStorage.setItem('userid', userid);
+    sessionStorage.setItem('email',  email);
+
+    showDashboard();
+  } catch (e) {
+    errEl.textContent = 'Invalid email or password.';
+  }
+}
+
+document.getElementById('login-btn').addEventListener('click', doLogin);
+document.getElementById('login-password').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLogin();
+});
+
+async function showDashboard() {
+  document.getElementById('login-gate').style.display  = 'none';
+  document.getElementById('dashboard').style.display   = 'block';
+
+  document.getElementById('header-meta').textContent = email;
+
+  await Promise.all([loadDevices(), loadSearches(), loadAlerts()]);
+}
+
+// load devices 
+async function loadDevices() {
+  try {
+    const data = await apiFetch(`/users/${userid}/devices`);
+    const devices = data.devices || [];
+    document.getElementById('stat-devices').textContent = devices.length;
+    if (devices.length > 0) {
+      document.getElementById('conn-device').textContent = devices.map(d => d.device_name).join(', ');
+    }
+  } catch {
+    document.getElementById('stat-devices').textContent = '—';
+  }
+}
+
+// load searches
+async function loadSearches() {
+  const listEl  = document.getElementById('search-list');
+  const countEl = document.getElementById('search-count');
+  try {
+    const data    = await apiFetch(`/users/${userid}/searches`);
+    const searches = (data.searches || []).slice(0, 30);
+
+    document.getElementById('stat-searches').textContent = data.searches?.length ?? 0;
+    countEl.textContent = `${searches.length} shown`;
+
+    if (searches.length === 0) {
+      listEl.innerHTML = '<div class="empty">No searches recorded yet.</div>';
+      return;
+    }
+
+    listEl.innerHTML = searches.map(s => {
+      const isFlagged = s.flagged;
+      const displayUrl = s.url
+        ? s.url.replace(/^https?:\/\/(www\.)?/, '').split('/')[0]
+        : (s.query_text || '—');
+      return `
+        <div class="search-item ${isFlagged ? 'flagged' : ''}">
+          <div class="search-main">
+            <div class="search-url" title="${s.url || ''}">${displayUrl}</div>
+            <div class="search-time">${fmt(s.searched_at)}</div>
+          </div>
+          ${isFlagged ? severityTag('watch') : severityTag('clean')}
+        </div>
+      `;
+    }).join('');
+  } catch(e) {
+    listEl.innerHTML = '<div class="empty">Could not load searches.</div>';
+    console.error(e);
+  }
+}
+
+// load alerts
+async function loadAlerts() {
+  const listEl  = document.getElementById('alert-list');
+  const countEl = document.getElementById('alert-count');
+  try {
+    const data   = await apiFetch(`/users/${userid}/alerts`);
+    const alerts = (data.alerts || []).slice(0, 20);
+
+    document.getElementById('stat-flagged').textContent = alerts.length;
+    countEl.textContent = `${alerts.length} total`;
+
+    if (alerts.length === 0) {
+      listEl.innerHTML = '<div class="empty">No flagged content.</div>';
+      return;
+    }
+
+    // show top alert in banner
+    const top = alerts[0];
+    if (top && top.severity !== 'watch') {
+      const banner = document.getElementById('alert-banner');
+      document.getElementById('alert-body').innerHTML =
+        `<span class="alert-domain">${top.domain || 'unknown domain'}</span> — ${top.reason_code || top.severity}`;
+      banner.classList.add('visible');
+    }
+
+    listEl.innerHTML = alerts.map(a => `
+      <div class="alert-item">
+        <div class="alert-item-domain">${a.domain || '—'}</div>
+        <div class="alert-item-meta">
+          <span class="alert-severity ${severityCls(a.severity)}">${a.severity}</span>
+          <span>·</span>
+          <span>${a.category_name || a.categoryid || ''}</span>
+          <span>·</span>
+          <span>${fmt(a.created_at)}</span>
+        </div>
+      </div>
+    `).join('');
+  } catch(e) {
+    listEl.innerHTML = '<div class="empty">Could not load alerts.</div>';
+    console.error(e);
+  }
+}
+document.getElementById('alert-dismiss').addEventListener('click', () => {
+  document.getElementById('alert-banner').classList.remove('visible');
+});
+
+//Auto-login if session exists 
+if (token && userid) {
+  showDashboard();
+}
+</script>
 </body>
 </html>
