@@ -28,11 +28,11 @@ LABEL_MAP = {
 # so page full of hate speech scores 1.0, all offensive scores 0.5,
 # all clean scores 0.0. Thresholds below control which tier is triggered.
 
-SEVERE_THRESHOLD   = 0.50  # high density of hate speech
-MODERATE_THRESHOLD = 0.20  # mix of offensive/hate content  
-WATCH_THRESHOLD    = 0.05  # low but non-trivial signal
+SEVERE_THRESHOLD   = 0.50  # high density of hate speech (originally 0.8)
+MODERATE_THRESHOLD = 0.20  # mix of offensive/hate content (originally 0.5)
+WATCH_THRESHOLD    = 0.05  # low but non-trivial signal (originally 0.2)
 
-# only judge pages with at least this many chunks
+# only judge pages with at least this many chunks (was 5 before)
 MIN_CHUNKS = 3
 
 # make chunk size larger, give the model more context, less false positives
