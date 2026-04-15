@@ -168,11 +168,12 @@ def run_offensive_check(url: str) -> str:
 def run_topic_extraction(url: str) -> list[str]:
     """Returns a list of up to 3 topic words, or [] on error."""
     try:
-        from content_flagging.url_summaries import top_3_topics_from_url
+        from content_summaries.url_summaries import top_3_topics_from_url
         topics = top_3_topics_from_url(url)
         return topics or []
     except ImportError:
         log.warning("  [topics] gensim/nltk not installed — skipping topic extraction")
+        # log.warning(f"your problem is ")
         return []
     except Exception as e:
         log.warning(f"  [topics] Error: {e}")

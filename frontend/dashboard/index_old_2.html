@@ -170,14 +170,14 @@
     }
     .search-item:last-child { border-bottom: none; }
     .search-item:hover { background: var(--bg); }
-    .search-item.flagged { background: var(--surface); }
+    .search-item.flagged { background: #fff8f7; }
     .search-main { flex: 1; min-width: 0; }
     .search-url {
       font-size: 13px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
       color: var(--text);
-      white-space: normal;
-      overflow-wrap: anywhere;
-      word-break: break-word;
     }
     .search-time {
       font-size: 11px;
@@ -331,86 +331,10 @@
       font-family: var(--mono);
     }
 
-
-    /*Topics & Profanity panels */
-    .bottom-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-      margin-top: 16px;
-    }
-    .topic-list { padding: 4px 0; }
-    .topic-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 9px 20px;
-      border-bottom: 1px solid var(--border);
-      font-size: 13px;
-    }
-    .topic-row:last-child { border-bottom: none; }
-    .topic-word { color: var(--text); }
-    .topic-count {
-      font-family: var(--mono);
-      font-size: 11px;
-      color: var(--muted);
-    }
-    .profanity-item {
-      padding: 10px 20px;
-      border-bottom: 1px solid var(--border);
-      font-family: var(--mono);
-      font-size: 12px;
-      color: var(--text);
-    }
-    .profanity-item:last-child { border-bottom: none; }
-    .profanity-time {
-      font-size: 11px;
-      color: var(--muted);
-      margin-top: 2px;
-    }
     @media (max-width: 680px) {
       .grid { grid-template-columns: 1fr; }
       .stats-row { grid-template-columns: 1fr 1fr; }
       .stats-row .stat:last-child { grid-column: span 2; }
-    }
-
-    .action-btn {
-      background: none;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 5px 10px;
-      font-size: 11px;
-      font-family: var(--mono);
-      color: var(--muted);
-      cursor: pointer;
-    }
-
-    .action-btn:hover {
-      color: var(--text);
-      border-color: var(--text);
-    }
-
-    .item-actions {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-shrink: 0;
-    }
-
-    .row-btn {
-      background: none;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 4px 8px;
-      font-size: 10px;
-      font-family: var(--mono);
-      color: var(--muted);
-      cursor: pointer;
-    }
-
-    .row-btn:hover {
-      color: var(--text);
-      border-color: var(--text);
     }
   </style>
 </head>
@@ -480,27 +404,6 @@
           <div class="card-count" id="alert-count"></div>
         </div>
         <div id="alert-list"><div class="loading">loading…</div></div>
-      </div>
-
-    </div>
-
-
-    <div class="bottom-grid">
-
-      <div class="card">
-        <div class="card-head">
-          <div class="card-title">Common Topics</div>
-          <div class="card-count" id="topic-count"></div>
-        </div>
-        <div id="topic-list"><div class="loading">loading…</div></div>
-      </div>
-
-      <div class="card">
-        <div class="card-head">
-          <div class="card-title">Profanity Flags</div>
-          <div class="card-count" id="profanity-count"></div>
-        </div>
-        <div id="profanity-list"><div class="loading">loading…</div></div>
       </div>
 
     </div>
@@ -616,7 +519,7 @@ async function loadSearches() {
   const countEl = document.getElementById('search-count');
   try {
     const data    = await apiFetch(`/users/${userid}/searches`);
-    const searches = (data.searches || []).slice(0, 10);
+    const searches = (data.searches || []).slice(0, 30);
 
     document.getElementById('stat-searches').textContent = data.searches?.length ?? 0;
     countEl.textContent = `${searches.length} shown`;
@@ -629,20 +532,17 @@ async function loadSearches() {
     listEl.innerHTML = searches.map(s => {
       const isFlagged = s.flagged;
       const displayUrl = s.url
-        ? s.url.replace(/^https?:\/\/(www\.)?/, '')
+        ? s.url.replace(/^https?:\/\/(www\.)?/, '').split('/')[0]
         : (s.query_text || '—');
-        return `
-          <div class="search-item ${isFlagged ? 'flagged' : ''}">
-            <div class="search-main">
-              <div class="search-url" title="${s.url || ''}">${displayUrl}</div>
-              <div class="search-time">${fmt(s.searched_at)}</div>
-            </div>
-            <div class="item-actions">
-              ${isFlagged ? severityTag('watch') : severityTag('clean')}
-              <button class="row-btn clear-search-btn">Clear</button>
-            </div>
+      return `
+        <div class="search-item ${isFlagged ? 'flagged' : ''}">
+          <div class="search-main">
+            <div class="search-url" title="${s.url || ''}">${displayUrl}</div>
+            <div class="search-time">${fmt(s.searched_at)}</div>
           </div>
-        `;
+          ${isFlagged ? severityTag('watch') : severityTag('clean')}
+        </div>
+      `;
     }).join('');
   } catch(e) {
     listEl.innerHTML = '<div class="empty">Could not load searches.</div>';
@@ -656,7 +556,7 @@ async function loadAlerts() {
   const countEl = document.getElementById('alert-count');
   try {
     const data   = await apiFetch(`/users/${userid}/alerts`);
-    const alerts = (data.alerts || []).slice(0, 10);
+    const alerts = (data.alerts || []).slice(0, 20);
 
     document.getElementById('stat-flagged').textContent = alerts.length;
     countEl.textContent = `${alerts.length} total`;
@@ -665,10 +565,6 @@ async function loadAlerts() {
       listEl.innerHTML = '<div class="empty">No flagged content.</div>';
       return;
     }
-
-    // populate topics + profanity panels
-    loadTopics(data.alerts || []);
-    loadProfanity(data.alerts || []);
 
     // show top alert in banner
     const top = alerts[0];
@@ -681,106 +577,23 @@ async function loadAlerts() {
 
     listEl.innerHTML = alerts.map(a => `
       <div class="alert-item">
-        <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px;">
-          <div>
-            <div class="alert-item-domain">${a.domain || '—'}</div>
-            <div class="alert-item-meta">
-              <span class="alert-severity ${severityCls(a.severity)}">${a.severity}</span>
-              <span>·</span>
-              <span>${a.category_name || a.categoryid || ''}</span>
-              <span>·</span>
-              <span>${fmt(a.created_at)}</span>
-            </div>
-          </div>
-          <button class="row-btn ok-alert-btn">OK</button>
+        <div class="alert-item-domain">${a.domain || '—'}</div>
+        <div class="alert-item-meta">
+          <span class="alert-severity ${severityCls(a.severity)}">${a.severity}</span>
+          <span>·</span>
+          <span>${a.category_name || a.categoryid || ''}</span>
+          <span>·</span>
+          <span>${fmt(a.created_at)}</span>
         </div>
       </div>
     `).join('');
-
   } catch(e) {
     listEl.innerHTML = '<div class="empty">Could not load alerts.</div>';
     console.error(e);
   }
 }
-
-// load topics (from TOPICS: reason_codes in alerts)
-function loadTopics(alerts) {
-  const listEl  = document.getElementById('topic-list');
-  const countEl = document.getElementById('topic-count');
-  const counts  = {};
-  alerts.forEach(a => {
-    if (a.reason_code && a.reason_code.startsWith('TOPICS:')) {
-      a.reason_code.replace('TOPICS:', '').split('|').forEach(t => {
-        const w = t.trim();
-        if (w) counts[w] = (counts[w] || 0) + 1;
-      });
-    }
-  });
-  const entries = Object.entries(counts).sort((a,b) => b[1]-a[1]).slice(0,8);
-  countEl.textContent = `${entries.length} found`;
-  if (entries.length === 0) {
-    listEl.innerHTML = '<div class="empty">No topics extracted yet.</div>';
-    return;
-  }
-  listEl.innerHTML = '<div class="topic-list">' +
-    entries.map(([word, count]) =>
-      `<div class="topic-row"><span class="topic-word">${word}</span><span class="topic-count">×${count}</span></div>`
-    ).join('') + '</div>';
-}
-
-// load profanity flags (CAT_PROFANITY alerts)
-function loadProfanity(alerts) {
-  const listEl  = document.getElementById('profanity-list');
-  const countEl = document.getElementById('profanity-count');
-  const flags   = alerts.filter(a => a.categoryid === 'CAT_PROFANITY' || a.category_name === 'Profanity');
-  countEl.textContent = `${flags.length} total`;
-  if (flags.length === 0) {
-    listEl.innerHTML = '<div class="empty">No profanity detected.</div>';
-    return;
-  }
-  listEl.innerHTML = flags.slice(0, 10).map(a =>
-    `<div class="profanity-item">
-      <div>${a.domain || '—'}</div>
-      <div class="profanity-time">${fmt(a.created_at)}</div>
-    </div>`
-  ).join('');
-}
-
 document.getElementById('alert-dismiss').addEventListener('click', () => {
   document.getElementById('alert-banner').classList.remove('visible');
-});
-
-document.addEventListener('click', (e) => {
-  if (e.target.classList.contains('clear-search-btn')) {
-    const item = e.target.closest('.search-item');
-    if (item) item.remove();
-
-    const remaining = document.querySelectorAll('#search-list .search-item').length;
-    document.getElementById('search-count').textContent = `${remaining} shown`;
-    document.getElementById('stat-searches').textContent = remaining;
-
-    if (remaining === 0) {
-      document.getElementById('search-list').innerHTML =
-        '<div class="empty">No searches recorded yet.</div>';
-    }
-  }
-
-  if (e.target.classList.contains('ok-alert-btn')) {
-    const item = e.target.closest('.alert-item');
-    if (item) item.remove();
-
-    const remaining = document.querySelectorAll('#alert-list .alert-item').length;
-    document.getElementById('alert-count').textContent = `${remaining} total`;
-    document.getElementById('stat-flagged').textContent = remaining;
-
-    if (remaining === 0) {
-      document.getElementById('alert-list').innerHTML =
-        '<div class="empty">No flagged content.</div>';
-      document.getElementById('alert-banner').classList.remove('visible');
-      loadTopics([]);
-      loadProfanity([]);
-    }
-  }
 });
 
 //Auto-login if session exists 
