@@ -97,6 +97,7 @@ class AlertCreate(BaseModel):
     severity: str
     domain: str | None = None
     reason_code: str | None = None
+    searchid: str
 
 @app.get("/health")
 def health():
@@ -371,9 +372,9 @@ def create_alert(alert: AlertCreate, x_api_key: str | None = Header(default=None
     try:
         with engine.begin() as conn:
             conn.execute(
-                text("INSERT INTO alerts (alertid, deviceid, categoryid, severity, domain, reason_code) VALUES (:alertid, :deviceid, :categoryid, :severity, :domain, :reason_code)"),
+                text("INSERT INTO alerts (alertid, deviceid, categoryid, severity, domain, reason_code, searchid) VALUES (:alertid, :deviceid, :categoryid, :severity, :domain, :reason_code, :searchid)"),
                 {"alertid": alertid, "deviceid": alert.deviceid, "categoryid": alert.categoryid,
-                 "severity": alert.severity, "domain": alert.domain, "reason_code": alert.reason_code}
+                 "severity": alert.severity, "domain": alert.domain, "reason_code": alert.reason_code, "searchid": alert.searchid}
             )
         return {"message": "Alert created", "alertid": alertid}
     except SQLAlchemyError as e:
@@ -387,7 +388,7 @@ def get_user_alerts(userid: str, current_user: str = Depends(get_current_userid)
         with engine.connect() as conn:
             rows = conn.execute(
                 text("""
-                    SELECT a.alertid, a.severity, a.domain, a.reason_code, a.created_at,
+                    SELECT a.alertid, a.searchid, a.severity, a.domain, a.reason_code, a.created_at,
                            ac.category_name, ac.categoryid
                     FROM alerts a
                     JOIN devices d ON a.deviceid = d.deviceid

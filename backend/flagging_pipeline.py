@@ -256,12 +256,12 @@ def run_topic_extraction(url: str) -> list[str]:
         return []
 
 
-def write_alert(deviceid: str, categoryid: str, severity: str, domain: str, reason_code: str):
+def write_alert(deviceid: str, categoryid: str, severity: str, domain: str, reason_code: str, searchid: str):
     alertid = "A" + uuid.uuid4().hex[:14]
     with engine.begin() as conn:
         conn.execute(text("""
-            INSERT INTO alerts (alertid, deviceid, categoryid, severity, domain, reason_code)
-            VALUES (:aid, :did, :cid, :sev, :dom, :rc)
+            INSERT INTO alerts (alertid, deviceid, categoryid, severity, domain, reason_code, searchid)
+            VALUES (:aid, :did, :cid, :sev, :dom, :rc, "sid)
         """), {
             "aid": alertid,
             "did": deviceid,
@@ -269,6 +269,7 @@ def write_alert(deviceid: str, categoryid: str, severity: str, domain: str, reas
             "sev": severity,
             "dom": domain[:255] if domain else None,
             "rc": reason_code[:100] if reason_code else None,
+            "sid": searchid
         })
     log.info(f"    → Alert {alertid}: [{severity.upper()}] {categoryid} — {reason_code}")
 
@@ -294,13 +295,13 @@ def process_search(searchid: str, deviceid: str, url: str, query_text: str):
     has_profanity = run_profanity_check(url)
     log.info(f"  Profanity: {'YES' if has_profanity else 'no'}")
     if has_profanity:
-        write_alert(deviceid, CAT_PROFANITY, "watch", domain, "PROFANITY_DETECTED")
+        write_alert(deviceid, CAT_PROFANITY, "watch", domain, "PROFANITY_DETECTED", searchid)
         alerts_written += 1
 
     offensive_result = run_offensive_check(url)
     log.info(f"  Offensive: {offensive_result}")
     if offensive_result in ("severe", "moderate", "watch"):
-        write_alert(deviceid, CAT_OFFENSIVE, offensive_result, domain, f"OFFENSIVE_{offensive_result.upper()}")
+        write_alert(deviceid, CAT_OFFENSIVE, offensive_result, domain, f"OFFENSIVE_{offensive_result.upper()}", searchid)
         alerts_written += 1
 
     topics = []
@@ -310,7 +311,7 @@ def process_search(searchid: str, deviceid: str, url: str, query_text: str):
     if topics:
         topic_severity = offensive_result if offensive_result in ("severe", "moderate") else "watch"
         reason = "TOPICS:" + "|".join(topics[:3])
-        write_alert(deviceid, CAT_TOPICS, topic_severity, domain, reason)
+        write_alert(deviceid, CAT_TOPICS, topic_severity, domain, reason, searchid)
         alerts_written += 1
 
     mark_search_flagged(searchid)
