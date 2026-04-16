@@ -261,7 +261,7 @@ def write_alert(deviceid: str, categoryid: str, severity: str, domain: str, reas
     with engine.begin() as conn:
         conn.execute(text("""
             INSERT INTO alerts (alertid, deviceid, categoryid, severity, domain, reason_code, searchid)
-            VALUES (:aid, :did, :cid, :sev, :dom, :rc, "sid)
+            VALUES (:aid, :did, :cid, :sev, :dom, :rc, :sid)
         """), {
             "aid": alertid,
             "did": deviceid,
