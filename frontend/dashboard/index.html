@@ -587,19 +587,28 @@ document.getElementById('login-password').addEventListener('keydown', e => {
   if (e.key === 'Enter') doLogin();
 });
 
+// async function showDashboard() {
+//   document.getElementById('login-gate').style.display  = 'none';
+//   document.getElementById('dashboard').style.display   = 'block';
+
+//   document.getElementById('header-meta').textContent = email;
+
+//   await Promise.all([loadDevices(), loadSearches(), loadAlerts()]);
+// }
 async function showDashboard() {
   document.getElementById('login-gate').style.display  = 'none';
   document.getElementById('dashboard').style.display   = 'block';
-
   document.getElementById('header-meta').textContent = email;
-
-  await Promise.all([loadDevices(), loadSearches(), loadAlerts()]);
+  await loadDevices();
+  await loadAlerts();    
+  await loadSearches(); 
 }
 
 // load devices 
 async function loadDevices() {
   try {
     const data = await apiFetch(`/users/${userid}/devices`);
+    window._allAlerts = data.alerts || [];
     const devices = data.devices || [];
     document.getElementById('stat-devices').textContent = devices.length;
     if (devices.length > 0) {
@@ -627,22 +636,27 @@ async function loadSearches() {
     }
 
     listEl.innerHTML = searches.map(s => {
-      const isFlagged = s.flagged;
       const displayUrl = s.url
         ? s.url.replace(/^https?:\/\/(www\.)?/, '')
         : (s.query_text || '—');
-        return `
-          <div class="search-item ${isFlagged ? 'flagged' : ''}">
-            <div class="search-main">
-              <div class="search-url" title="${s.url || ''}">${displayUrl}</div>
-              <div class="search-time">${fmt(s.searched_at)}</div>
-            </div>
-            <div class="item-actions">
-              ${isFlagged ? severityTag('watch') : severityTag('clean')}
-              <button class="row-btn clear-search-btn">Clear</button>
-            </div>
+      const domain = s.url ? s.url.replace(/^https?:\/\/(www\.)?/, '').split('/')[0] : '';
+      const matchingAlert = (window._allAlerts || []).find(a =>
+        a.domain && domain && a.domain.includes(domain) &&
+        a.categoryid === 'CAT_OFFENSIVE'
+      );
+      const severity = !s.flagged ? null : (matchingAlert ? matchingAlert.severity : 'clean');
+      return `
+        <div class="search-item ${severity && severity !== 'clean' ? 'flagged' : ''}">
+          <div class="search-main">
+            <div class="search-url" title="${s.url || ''}">${displayUrl}</div>
+            <div class="search-time">${fmt(s.searched_at)}</div>
           </div>
-        `;
+          <div class="item-actions">
+            ${s.flagged ? severityTag(severity || 'clean') : severityTag(null)}
+            <button class="row-btn clear-search-btn">Clear</button>
+          </div>
+        </div>
+      `;
     }).join('');
   } catch(e) {
     listEl.innerHTML = '<div class="empty">Could not load searches.</div>';
