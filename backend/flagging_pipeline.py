@@ -178,7 +178,7 @@ def run_offensive_check(url: str) -> str:
             try:
                 from content_flagging.offensive_flag import predict_offensive_from_url
                 result = predict_offensive_from_url(url)
-                if result in {"severe", "moderate", "watch", "clean"}:
+                if result in {"urgent", "moderate", "watch", "clean"}:
                     if result == "watch" and profanity_hits >= 6:
                         return "moderate"
                     return result
@@ -230,7 +230,7 @@ def run_offensive_check(url: str) -> str:
         )
 
         if hate_weight >= 0.18 or ml_weight >= 0.42 or profanity_ratio >= 0.03 or profanity_hits >= 12:
-            return "severe"
+            return "urgent"
         if hate_weight >= 0.05 or ml_weight >= 0.18 or profanity_ratio >= 0.008 or profanity_hits >= 4:
             return "moderate"
         if combined >= 0.08:
@@ -300,12 +300,12 @@ def process_search(searchid: str, deviceid: str, url: str, query_text: str):
 
     offensive_result = run_offensive_check(url)
     log.info(f"  Offensive: {offensive_result}")
-    if offensive_result in ("severe", "moderate", "watch"):
+    if offensive_result in ("urgent", "moderate", "watch"):
         write_alert(deviceid, CAT_OFFENSIVE, offensive_result, domain, f"OFFENSIVE_{offensive_result.upper()}", searchid)
         alerts_written += 1
 
     topics = []
-    if offensive_result in ("severe", "moderate", "watch") or has_profanity:
+    if offensive_result in ("urgent", "moderate", "watch") or has_profanity:
         topics = run_topic_extraction(url)
     log.info(f"  Topics: {topics}")
     if topics:

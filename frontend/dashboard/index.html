@@ -539,12 +539,18 @@ function fmt(dateStr) {
 
 function severityTag(severity) {
   if (!severity) return `<span class="severity-tag tag-pending">pending</span>`;
-  const cls = { watch: 'tag-watch', moderate: 'tag-moderate', severe: 'tag-severe', clean: 'tag-clean' }[severity] || 'tag-pending';
+    const cls = {
+    watch: 'tag-watch',
+    moderate: 'tag-moderate',
+    urgent: 'tag-severe',  // reuse styling
+    clean: 'tag-clean'
+}[severity]
+  // const cls = { watch: 'tag-watch', moderate: 'tag-moderate', severe: 'tag-severe', clean: 'tag-clean' }[severity] || 'tag-pending';
   return `<span class="severity-tag ${cls}">${severity}</span>`;
 }
 
 function severityCls(s) {
-  return { watch: 'sev-watch', moderate: 'sev-moderate', severe: 'sev-severe' }[s] || 'sev-watch';
+  return { watch: 'sev-watch', moderate: 'sev-moderate', urgent: 'sev-severe' }[s] || 'sev-watch';
 }
 
 async function apiFetch(path, opts = {}) {
@@ -608,7 +614,7 @@ async function showDashboard() {
 async function loadDevices() {
   try {
     const data = await apiFetch(`/users/${userid}/devices`);
-    window._allAlerts = data.alerts || [];
+    // window._allAlerts = data.alerts || [];
     const devices = data.devices || [];
     document.getElementById('stat-devices').textContent = devices.length;
     if (devices.length > 0) {
@@ -640,11 +646,27 @@ async function loadSearches() {
         ? s.url.replace(/^https?:\/\/(www\.)?/, '')
         : (s.query_text || '—');
       const domain = s.url ? s.url.replace(/^https?:\/\/(www\.)?/, '').split('/')[0] : '';
-      const matchingAlert = (window._allAlerts || []).find(a =>
-        a.domain && domain && a.domain.includes(domain) &&
-        a.categoryid === 'CAT_OFFENSIVE'
-      );
-      const severity = !s.flagged ? null : (matchingAlert ? matchingAlert.severity : 'clean');
+
+      const matchingAlerts = (window._allAlerts || []).filter(a => a.searchid === s.searchid);
+
+      let severity = null;
+
+      if (matchingAlerts.length > 0) {
+        if (matchingAlerts.some(a => a.severity === 'urgent')) {
+          severity = 'urgent';
+        } else if (matchingAlerts.some(a => a.severity === 'moderate')) {
+          severity = 'moderate';
+        } else if (matchingAlerts.some(a => a.severity === 'watch')) {
+        severity = 'watch';
+        } else {
+        severity = 'clean';
+      }
+}
+      // const matchingAlert = (window._allAlerts || []).find(a =>
+      //   a.domain && domain && a.domain.includes(domain) &&
+      //   a.categoryid === 'CAT_OFFENSIVE'
+      // );
+      // const severity = !s.flagged ? null : (matchingAlert ? matchingAlert.severity : 'clean');
       return `
         <div class="search-item ${severity && severity !== 'clean' ? 'flagged' : ''}">
           <div class="search-main">
@@ -670,6 +692,7 @@ async function loadAlerts() {
   const countEl = document.getElementById('alert-count');
   try {
     const data   = await apiFetch(`/users/${userid}/alerts`);
+    window._allAlerts = data.alerts || [];
     const alerts = (data.alerts || []).slice(0, 10);
 
     document.getElementById('stat-flagged').textContent = alerts.length;

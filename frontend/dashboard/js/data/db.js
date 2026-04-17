@@ -42,22 +42,73 @@ export const db = {
 export async function fetchSearchHistory() {
   const { userid } = getAuth();
   if (!userid) return [];
+
   try {
-    const data = await apiFetch(`/users/${userid}/searches`);
-    return (data.searches || []).slice(0, 30).map(s => ({
-      id:       s.searchid,
-      query:    s.url
-                  ? s.url.replace(/^https?:\/\/(www\.)?/, '').split('/')[0]
-                  : (s.query_text || '—'),
-      time:     fmtTime(s.searched_at),
-      status:   s.flagged ? 'review' : 'safe',
-      category: 'default',
-    }));
+    const [searchData, alertData] = await Promise.all([
+      apiFetch(`/users/${userid}/searches`),
+      apiFetch(`/users/${userid}/alerts`)
+    ]);
+
+    const alertsBySearch = {};
+
+    (alertData.alerts || []).forEach(a => {
+      if (!a.searchid) return;
+      if (!alertsBySearch[a.searchid]) alertsBySearch[a.searchid] = [];
+      alertsBySearch[a.searchid].push(a);
+    });
+
+    return (searchData.searches || []).slice(0, 30).map(s => {
+      const matchingAlerts = alertsBySearch[s.searchid] || [];
+
+      let status = 'clean';
+      if (matchingAlerts.some(a => a.severity === 'severe')) {
+        status = 'urgent';
+      } else if (matchingAlerts.some(a => a.severity === 'moderate')) {
+        status = 'moderate';
+      } else if (matchingAlerts.some(a => a.severity === 'watch')) {
+        status = 'watch';
+      }
+
+      console.log('SEARCH', s.searchid, s.url);
+      console.log('MATCHING ALERTS', matchingAlerts);
+      console.log('FINAL STATUS', status);
+
+      return {
+        id: s.searchid,
+        query: s.url
+          ? s.url.replace(/^https?:\/\/(www\.)?/, '').split('/')[0]
+          : (s.query_text || '—'),
+        time: fmtTime(s.searched_at),
+        status,
+        category: 'default',
+      };
+    });
   } catch (e) {
     console.error('[db] fetchSearchHistory:', e);
+  
     return [];
   }
 }
+
+// export async function fetchSearchHistory() {
+//   const { userid } = getAuth();
+//   if (!userid) return [];
+//   try {
+//     const data = await apiFetch(`/users/${userid}/searches`);
+//     return (data.searches || []).slice(0, 30).map(s => ({
+//       id:       s.searchid,
+//       query:    s.url
+//                   ? s.url.replace(/^https?:\/\/(www\.)?/, '').split('/')[0]
+//                   : (s.query_text || '—'),
+//       time:     fmtTime(s.searched_at),
+//       status:   s.flagged ? 'review' : 'safe',
+//       category: 'default',
+//     }));
+//   } catch (e) {
+//     console.error('[db] fetchSearchHistory:', e);
+//     return [];
+//   }
+// }
 
 export async function fetchAlerts() {
   const { userid } = getAuth();

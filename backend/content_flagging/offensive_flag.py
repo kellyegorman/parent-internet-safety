@@ -107,7 +107,7 @@ def predict_offensive(text):
 def predict_offensive_from_url(url):
     """
     Returns one of:
-      "severe"   — high concentration of hate speech
+      "urgent"   — high concentration of hate speech
       "moderate" — meaningful offensive/hate content
       "watch"    — low but present signal worth monitoring
       "clean"    — no significant offensive content detected
@@ -141,7 +141,7 @@ def predict_offensive_from_url(url):
     print(f"  Score: {weighted_score:.3f} | hate={hate_count} offensive={offensive_count} total={total_chunks}")
 
     if weighted_score >= SEVERE_THRESHOLD:
-        return "severe"
+        return "urgent"
     elif weighted_score >= MODERATE_THRESHOLD:
         return "moderate"
     elif weighted_score >= WATCH_THRESHOLD:
